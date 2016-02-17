@@ -11,8 +11,11 @@ include("timingmodel.jl")
 function update(board, click_coords)
   i, j = click_coords
   clicked = copy(board.clicked)
+  should_remove = clicked[i, j] != 0
   fill!(sub(clicked, i, :), 0) # reset column
-  clicked[i, j] = 1
+  if !should_remove
+    clicked[i, j] = 1
+  end
   return TimingBoard(clicked, board.timescale)
 end
 
