@@ -22,7 +22,8 @@ function simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_del
       pix_index = [x, y]
       pix_coord = pix_index .* image_pitch
 
-      for i_trans in 1:length(x_transducers)
+      # for i_trans in 1:length(x_transducers)
+      for i_trans in find(trans_delays .>= 0)
         xt = x_transducers[i_trans]
         trans_coord = [xt, 0]# * m
         dist_to_transducer = norm(trans_coord .- pix_coord)
