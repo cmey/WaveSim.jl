@@ -12,7 +12,7 @@ const image_fov = [0.04, 0.04]# * m
 const n_time_steps = 3
 
 pulse_shape_func(phase) = cos(phase)
-const pulse_length = 1 / F0 # [s] 1 complete cycle
+const pulse_length = 2 / F0 # [s] 2 complete cycle
 const transducer_array_size = 0.03 # [m] # physical size of transducer
 
 function simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_delays, wavelength)
@@ -22,7 +22,6 @@ function simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_del
       pix_index = [x, y]
       pix_coord = pix_index .* image_pitch
 
-      # for i_trans in 1:length(x_transducers)
       for i_trans in find(trans_delays .>= 0)
         xt = x_transducers[i_trans]
         trans_coord = [xt, 0]# * m
