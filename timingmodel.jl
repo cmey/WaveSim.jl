@@ -14,6 +14,6 @@ end
 
 function delays(board)
   m, n = size(board.clicked)
-  time_step = board.timescale / m
-  delays = [time_step*(findfirst(board.clicked[i_trans,:])-1) for i_trans in 1:n]
+  time_step = board.timescale / n
+  delays = [time_step*(findfirst(board.clicked[i_trans,:])-1) for i_trans in 1:m]
 end
