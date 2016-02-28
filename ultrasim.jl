@@ -9,7 +9,7 @@ const end_simulation_time = 30 * 1e-6 # [s] start at 0 s
 
 const image_res = [32, 32]# * m^-1
 const image_fov = [0.04, 0.04]# * m
-const n_time_steps = 3
+const n_time_steps = 9
 
 pulse_shape_func(phase) = cos(phase)
 const pulse_length = 2 / F0 # [s] 2 complete cycle

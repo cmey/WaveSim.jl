@@ -1,10 +1,12 @@
 using Colors
 using Gadfly
+using Compose
 
 #### Model ####
 
 include("ultrasim.jl")
 include("timingmodel.jl")
+board_size = (20, 10)
 
 ### Update ###
 
@@ -16,11 +18,14 @@ function update(board, click_coords)
   if !should_remove
     clicked[i, j] = 1
   end
-  return TimingBoard(clicked, board.timescale)
+  new_board = TimingBoard(clicked, board.timescale)
+  println(size(new_board.clicked), " ", new_board.clicked)
+  return new_board
 end
 
 click_signal = Signal((0, 0))
-initial_board_signal = Signal(TimingBoard, newboard(20, 10))
+initial_board_signal = Signal(TimingBoard,
+	                          newboard(board_size[1], board_size[2]))
 board_signal = flatten(
   map(initial_board_signal) do b
     foldp(update, b, click_signal; typ=TimingBoard)
@@ -42,38 +47,37 @@ unclicked_icon = box("", "#fff")
 block(board, i, j) =
   return intent(constant((i, j)), clickable(
     board.clicked[i, j] != 0 ? clicked_icon : unclicked_icon)) >>> click_signal
-    
+
+ 
+global images = ultrasim(delays(newboard(board_size[1], board_size[2])))
+
 function showboard(board::TimingBoard)
     m, n = size(board.clicked)
     b = vbox([hbox([block(board, i, j) for i in 1:m]) for j in 1:n])
     
     trans_delays = delays(board)
-    images = ultrasim(trans_delays)
-    vbox(
-      b,
-      # spy(rand(32,32))
-      spy(images[end])
-    )
+    global images = ultrasim(trans_delays)
+    
+    return b
 end
 
 function main(window)
   push!(window.assets, "widgets")
 
-  #images = ultrasim()
-  #n_sim_time_steps = length(images)
-
-  # Run at 30 FPS
-  # eventloop = every(1/5)
-
+  eventloop = every(1/3)
   it = 0
-  # map(eventloop) do _
-  	#it = (it % n_sim_time_steps) + 1
-  	
-    vbox(
-      vskip(2em),
-      title(3, "ultrasim"),
-      vskip(2em),
-      map(showboard, board_signal, typ=Tile),
-    ) |> packacross(center)
-  # end
+
+  vbox(
+    vskip(2em),
+    title(3, "UltraSim.jl"),
+    vskip(2em),
+    map(showboard, board_signal, typ=Tile),
+    map(eventloop) do _
+      n_sim_time_steps = length(images)
+      it = (it % n_sim_time_steps) + 1
+
+  	  spy(images[it])
+  	  # bitmap("test", rand(UInt8,9), 0, 1, 3, 3, :image)
+    end
+  ) |> packacross(center)
 end
