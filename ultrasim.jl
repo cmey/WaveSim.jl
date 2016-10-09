@@ -1,10 +1,9 @@
 # UltraSim.jl, ultrasound simulator.
 # Wave propagation computation.
 # Christophe MEYER, 2016
-using Gadfly
-#using PyPlot
-#using SIUnits
-#using SIUnits.ShortUnits
+
+# using SIUnits
+# using SIUnits.ShortUnits
 
 # Configuration
 
@@ -16,18 +15,18 @@ const F0 = 3_000_000 # * Hz
 const end_simulation_time = 30 * 1e-6 # [s] start at 0 s
 
 # result images resolution
-const image_res = [32, 32]# * m^-1
-# field of view
+const image_res = [64, 64] # * m^-1
+# field of view, x=0 centered on aperture center, z=0 at aperture plane
 const image_fov = [0.04, 0.04]# * m
 # number of time steps to divide the simulation time span
 const n_time_steps = 9
 
+# physical length of the transducer array
+const transducer_array_size = 0.03 # [m] # physical size of transducer
 # shape of the transmit pulse
 pulse_shape_func(phase) = cos(phase)
 # length of the transmit pulse
-const pulse_length = 2 / F0 # [s] 2 complete cycle
-# physical length of the transducer array
-const transducer_array_size = 0.03 # [m] # physical size of transducer
+const pulse_length = 2 / F0 # [s] 2 complete cycles
 
 # simulate one time step of wave propagation
 function simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_delays, wavelength)
@@ -72,7 +71,7 @@ end
 # run the simulation time steps
 function ultrasim(trans_delays)
   wavelength, x_transducers, tvec, image_pitch = init(trans_delays)
-  
+
   images = []
 
   for t in tvec
@@ -84,15 +83,22 @@ function ultrasim(trans_delays)
   return images
 end
 
+# using Gadfly
+using PyPlot
+
 # test simulator
 function main()
   const n_transducers = 5
   trans_delays = zeros(n_transducers)
   images = ultrasim(trans_delays)
   n_sim_time_steps = length(images)
-  for i_image in 1:n_sim_time_steps
-    spy(images[i_image])
-    sleep(1)
+  while true
+    fig = figure()
+    for i_image in 1:n_sim_time_steps
+      imshow(images[i_image])
+      sleep(0.1)
+    end
+    close(fig)
   end
   return images
 end
