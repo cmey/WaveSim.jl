@@ -62,7 +62,7 @@ function simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_del
         time_to_reach = dist_to_transducer / c + trans_delay
         # if the transducer wave reached this pixel...
         if time_to_reach <= t <= time_to_reach+pulse_length
-          amp = pulse_shape_func(dist_to_transducer/wavelength*2*pi)
+          amp = pulse_shape_func((t - time_to_reach) * F0 * 2 * pi)
         else
           amp = 0.0
         end
