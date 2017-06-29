@@ -11,7 +11,7 @@ const F0 = 3_000_000.0  # [Hz]
 # resolution at which to divide the simulation time span
 const temporal_res = 0.1 * 1e-6  # [s]
 # spatial resolution of the simulation
-const spatial_res = [64, 64]  # [pixels]
+const spatial_res = [512, 512]  # [pixels]
 # field of view, x=0 centered on aperture center, z=0 at aperture plane
 const fov = [0.04, 0.04]  # [m]
 # time span to simulate
@@ -41,18 +41,23 @@ end
 
 # simulate one time step of wave propagation
 function simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_delays, wavelength)
-  println("simulate_one_time_step")
+  # println("simulate_one_time_step")
+  transducers_that_are_firing = find(trans_delays .>= 0)
+  trans_coord = [0.0, 0.0]  # [m] space
+  pix_coord = [0.0, 0.0]
   for x in 1:spatial_res[1]
     for y in 1:spatial_res[2]
-      pix_index = [x, y]  # index
-      pix_coord = pix_index .* image_pitch  # space
+      pix_coord[1] = x * image_pitch[1]  # space
+      pix_coord[2] = y * image_pitch[2]  # space
 
       # for transducers that will fire...
-      for i_trans in find(trans_delays .>= 0)
+      for i_trans in transducers_that_are_firing
         xt = x_transducers[i_trans]  # index
-        trans_coord = [xt, 0]  # [m] space
+        trans_coord[1] = xt
+        trans_coord[2] = 0.0
         # from pixel to transducer
-        dist_to_transducer = norm(trans_coord .- pix_coord)
+        dist_to_transducer = sqrt((trans_coord[1] - pix_coord[1])^2 +
+                                  (trans_coord[2] - pix_coord[2])^2)
         trans_delay = trans_delays[i_trans]
         time_to_reach = dist_to_transducer / c + trans_delay
         # if the transducer wave reached this pixel...
@@ -73,12 +78,11 @@ end
 function ultrasim(trans_delays)
   wavelength, x_transducers, tvec, image_pitch = init(trans_delays)
 
-  images = []
+  images = zeros(Float32, (length(tvec), spatial_res[1], spatial_res[2]))
 
-  for t in tvec
-    image = zeros(Float32, (spatial_res[1], spatial_res[2]))
+  for (i_time, t) in enumerate(tvec)
+    image = view(images, i_time, :, :)
     simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_delays, wavelength)
-    push!(images, image)
   end
 
   return images
@@ -104,5 +108,3 @@ function main()
 end
 
 end  # module UltraSim
-
-const images = UltraSim.main()
