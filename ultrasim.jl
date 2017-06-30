@@ -45,24 +45,25 @@ function simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_del
   transducers_that_are_firing = find(trans_delays .>= 0)
   trans_coord = [0.0, 0.0]  # [m] space
   pix_coord = [0.0, 0.0]
-  for x in 1:spatial_res[1]
-    for y in 1:spatial_res[2]
+  for y in 1:spatial_res[2]
+    pix_coord[2] = y * image_pitch[2]  # space
+    for x in 1:spatial_res[1]
       pix_coord[1] = x * image_pitch[1]  # space
-      pix_coord[2] = y * image_pitch[2]  # space
 
       # for transducers that will fire...
       for i_trans in transducers_that_are_firing
         xt = x_transducers[i_trans]  # index
+        trans_delay = trans_delays[i_trans]
         trans_coord[1] = xt
         trans_coord[2] = 0.0
         # from pixel to transducer
         dist_to_transducer = sqrt((trans_coord[1] - pix_coord[1])^2 +
                                   (trans_coord[2] - pix_coord[2])^2)
-        trans_delay = trans_delays[i_trans]
-        time_to_reach = dist_to_transducer / c + trans_delay
+        time_to_transducer = dist_to_transducer / c
+        time_to_reach = time_to_transducer + trans_delay
         # if the transducer wave reached this pixel...
         if time_to_reach <= t <= time_to_reach+pulse_length
-          amp = pulse_shape_func((t - time_to_reach) * F0 * 2 * pi)
+          amp = pulse_shape_func((t - time_to_reach) * F0 * 2pi)
         else
           amp = 0.0
         end
@@ -78,10 +79,10 @@ end
 function ultrasim(trans_delays)
   wavelength, x_transducers, tvec, image_pitch = init(trans_delays)
 
-  images = zeros(Float32, (length(tvec), spatial_res[1], spatial_res[2]))
+  images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
 
   for (i_time, t) in enumerate(tvec)
-    image = view(images, i_time, :, :)
+    image = view(images, :, :, i_time)
     simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_delays, wavelength)
   end
 

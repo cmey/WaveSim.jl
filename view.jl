@@ -15,6 +15,6 @@ function colorize_field(images)
 end
 
 function imshow4d(images)
-    imshow(colorize_field(images), axes=(2, 3))
+    imshow(colorize_field(images))
 end
 
