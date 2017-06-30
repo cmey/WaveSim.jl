@@ -9,16 +9,18 @@ const c = 1540.0  # [m/s]
 # transmit center frequency
 const F0 = 3_000_000.0  # [Hz]
 # resolution at which to divide the simulation time span
-const temporal_res = 0.1 * 1e-6  # [s]
+const temporal_res = 0.1e-6  # [s]
 # spatial resolution of the simulation
 const spatial_res = [512, 512]  # [pixels]
 # field of view, x=0 centered on aperture center, z=0 at aperture plane
-const fov = [0.04, 0.04]  # [m]
+const fov = [4e-2, 4e-2]  # [m]
 # time span to simulate
-const end_simulation_time = 20.0 * 1e-6  # [s] start at 0 s
+const end_simulation_time = 20.0e-6  # [s] starts at 0 s
 
 # physical length of the transducer array
 const transducer_array_size = 0.03  # [m]
+# spacing between physical elements of transducer array
+const transducer_pitch = 208e-6  # [m]
 # shape of the transmit pulse
 pulse_shape_func(phase) = cos(phase)
 # length of the transmit pulse
@@ -29,13 +31,11 @@ const pulse_length = 2 / F0  # [s] 2 complete cycles
 function init(trans_delays)
   wavelength = c/F0 # [m]
   n_transducers = length(trans_delays)
-  # spacing between elements
-  # const transducer_pitch = 0.1 * 1e-3  # [m]
-  transducer_pitch = transducer_array_size / n_transducers
-  x_transducers = [transducer_pitch * itrans for itrans in 1:n_transducers]
-  tvec = linspace(0.0, end_simulation_time, end_simulation_time / temporal_res)
+  x_transducers = [transducer_pitch * itrans for itrans in 1:n_transducers]  # [m]
+  x_transducers += fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
+  time_vec = collect(0.0:temporal_res:end_simulation_time)
   image_pitch = fov ./ spatial_res
-  return wavelength, x_transducers, tvec, image_pitch
+  return wavelength, x_transducers, time_vec, image_pitch
 end
 
 
@@ -46,9 +46,9 @@ function simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_del
   trans_coord = [0.0, 0.0]  # [m] space
   pix_coord = [0.0, 0.0]
   for y in 1:spatial_res[2]
-    pix_coord[2] = y * image_pitch[2]  # space
+    pix_coord[2] = y * image_pitch[2]  # [m]
     for x in 1:spatial_res[1]
-      pix_coord[1] = x * image_pitch[1]  # space
+      pix_coord[1] = x * image_pitch[1]  # [m]
 
       # for transducers that will fire...
       for i_trans in transducers_that_are_firing
