@@ -92,7 +92,7 @@ end
 # test simulator
 function main()
   # number of elements
-  const num_transducers = 5
+  const num_transducers = 50
 
   trans_delays = zeros(num_transducers)
   images = ultrasim(trans_delays)
