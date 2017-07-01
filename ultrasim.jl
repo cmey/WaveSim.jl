@@ -59,11 +59,14 @@ function simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_del
         # from pixel to transducer
         dist_to_transducer = sqrt((trans_coord[1] - pix_coord[1])^2 +
                                   (trans_coord[2] - pix_coord[2])^2)
+        # wave is spreading spherically in space, energy spreading loss goes with r^2, amp with r
+        # see: https://ccrma.stanford.edu/~jos/pasp/Spherical_Waves_Point_Source.html
+        wave_spreading_factor = 1 / dist_to_transducer
         time_to_transducer = dist_to_transducer / c
         time_to_reach = time_to_transducer + trans_delay
         # if the transducer wave reached this pixel...
         if time_to_reach <= t <= time_to_reach+pulse_length
-          amp = pulse_shape_func((t - time_to_reach) * F0 * 2pi)
+          amp = pulse_shape_func((t - time_to_reach) * F0 * 2pi) * wave_spreading_factor
         else
           amp = 0.0
         end
