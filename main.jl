@@ -17,6 +17,4 @@ end
 
 images = main()
 
-imshow4d(images)
-# or:
-# imshow4d(bilog(images))
+imshowall(images)

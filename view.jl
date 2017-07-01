@@ -1,6 +1,6 @@
 include("bilog.jl")
-using ImageView
-using Colors
+using Colors, Gtk.ShortNames, ImageView
+
 
 function colorize_field(images)
     num_colormap_entries = 100
@@ -13,7 +13,37 @@ function colorize_field(images)
     return cmap[images_indexed]
 end
 
+
 function imshow4d(images)
-    imshow(colorize_field(images))
+    ImageView.imshow(colorize_field(bilog(images)))
 end
 
+
+# Get the beam profile spatial map and transmit time of beam energy, where each pixel indicates the maximum energy that was seen at that place, and at what time.
+function beam_energy_map_and_transmit_time_map(images)
+    maxval, linindices = findmax(images, 3)
+
+    beam_energy_map = squeeze(maxval, 3)
+
+    transmit_time_map = similar(beam_energy_map)
+
+    for linind in eachindex(linindices)
+        x, y, t = ind2sub(images, linindices[linind])
+        transmit_time_map[linind] = t
+    end
+
+    return beam_energy_map, transmit_time_map
+end
+
+
+function imshowall(images)
+    imshow4d(images)
+
+    beam_energy_map, transmit_time_map = beam_energy_map_and_transmit_time_map(images)
+
+    grid, frames, canvases = canvasgrid((1,2))  # 1 row, 2 columns
+    imshow(canvases[1,1], bilog(beam_energy_map))
+    imshow(canvases[1,2], transmit_time_map)
+    win = Window(grid)
+    showall(win)
+end
