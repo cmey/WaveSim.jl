@@ -92,23 +92,4 @@ function ultrasim(trans_delays)
   return images
 end
 
-# test simulator
-function main()
-  # number of elements
-  const num_transducers = 50
-
-  trans_delays = zeros(num_transducers)
-  images = ultrasim(trans_delays)
-  n_sim_time_steps = length(images)
-  # while true
-  #   fig = figure()
-  #   for i_image in 1:n_sim_time_steps
-  #     imshow(images[i_image])
-  #     sleep(0.1)
-  #   end
-  #   close(fig)
-  # end
-  return images
-end
-
 end  # module UltraSim
