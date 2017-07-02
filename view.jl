@@ -14,11 +14,6 @@ function colorize_field(images)
 end
 
 
-function imshow4d(images)
-    ImageView.imshow(colorize_field(bilog(images)))
-end
-
-
 # Get the beam profile spatial map and transmit time of beam energy, where each pixel indicates the maximum energy that was seen at that place, and at what time.
 function beam_energy_map_and_transmit_time_map(images)
     maxval, linindices = findmax(images, 3)
@@ -37,13 +32,9 @@ end
 
 
 function imshowall(images)
-    imshow4d(images)
-
     beam_energy_map, transmit_time_map = beam_energy_map_and_transmit_time_map(images)
 
-    grid, frames, canvases = canvasgrid((1,2))  # 1 row, 2 columns
-    imshow(canvases[1,1], bilog(beam_energy_map))
-    imshow(canvases[1,2], transmit_time_map)
-    win = Window(grid)
-    showall(win)
+    imshow(colorize_field(bilog(images)))
+    imshow(bilog(beam_energy_map))
+    imshow(transmit_time_map)
 end
