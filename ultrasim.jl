@@ -84,7 +84,8 @@ function ultrasim(trans_delays)
 
   images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
 
-  for (i_time, t) in enumerate(tvec)
+  Threads.@threads for i_time in 1:length(tvec)
+    t = tvec[i_time]
     image = view(images, :, :, i_time)
     simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_delays, wavelength)
   end
