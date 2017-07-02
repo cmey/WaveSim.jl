@@ -2,16 +2,18 @@ include("ultrasim.jl")
 include("view.jl")
 using UltraSim
 
-# test simulator
+# Run the simulator and display results.
 function main()
-  focus = 0.03
-  aperture_size = 0.01
-  trans_delays = UltraSim.delays_from_focus(focus, aperture_size)  # elements firing delay
+  focus = 0.03  # [m]
+  aperture_size = 0.01  # [m]
 
-  # run the simulation
+  # Compute focusing delays for the elements of the phased array.
+  trans_delays = UltraSim.delays_from_focus(focus, aperture_size)
+
+  # Run the simulation.
   images = UltraSim.ultrasim(trans_delays)
 
-  # display result
+  # Display results.
   imshowall(images)
 
   return images
