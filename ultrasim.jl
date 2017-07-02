@@ -51,7 +51,7 @@ function simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_del
       pix_coord[1] = x * image_pitch[1]  # [m]
 
       # for transducers that will fire...
-      for i_trans in transducers_that_are_firing
+      @inbounds for i_trans in transducers_that_are_firing
         xt = x_transducers[i_trans]  # index
         trans_delay = trans_delays[i_trans]
         trans_coord[1] = xt
