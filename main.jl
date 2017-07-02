@@ -1,20 +1,21 @@
-include("UltraSim.jl")
+include("ultrasim.jl")
 include("view.jl")
 using UltraSim
 
 # test simulator
 function main()
-  # number of elements
-  const num_transducers = 50
-  # elements firing delay
-  trans_delays = zeros(num_transducers)
+  focus = 0.03
+  aperture_size = 0.01
+  trans_delays = UltraSim.delays_from_focus(focus, aperture_size)  # elements firing delay
+
   # run the simulation
   images = UltraSim.ultrasim(trans_delays)
+
+  # display result
+  imshowall(images)
 
   return images
 end
 
 
 images = main()
-
-imshowall(images)

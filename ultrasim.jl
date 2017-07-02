@@ -92,4 +92,38 @@ function ultrasim(trans_delays)
   return images
 end
 
+
+# Compute transmit time delays given focus depth [m] (impacts amount of delay) and aperture_size [m] (impacts how many elements are firing).
+# Adapted from: Tumsys, 2014, http://dx.doi.org/10.5755/j01.eee.20.3.3638
+function delays_from_focus(focus_depth, aperture_size)
+    num_elements = round(Int, aperture_size / transducer_pitch)
+
+    x_transducers = [transducer_pitch * ielem for ielem in 1:num_elements]  # [m]
+    x_transducers += fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
+
+    focus_coord = [0.0, focus_depth]
+    trans_delays = zeros(num_elements)
+
+    # Define variables as in the reference paper (see above).
+    l0 = focus_depth
+    A = aperture_size
+    e = transducer_pitch
+    n = num_elements
+    v1 = c
+    # Compute dependent variables.
+    l02 = l0^2
+    Ae = A - e
+    first_part = sqrt(l02 + (Ae / 2) ^ 2)  # longest dist from focus to elem (i.e. to the edge)
+
+    # for transducers that will fire...
+    for (i_elem, x_elem) = enumerate(x_transducers)
+        k = i_elem
+        second_part = sqrt(l02 + (Ae * abs(n - 2k + 1) / (2n - 1)) ^ 2)  # offset_dist
+        trans_delays[i_elem] = (first_part - second_part) / v1
+    end
+
+    return trans_delays
+end
+
+
 end  # module UltraSim

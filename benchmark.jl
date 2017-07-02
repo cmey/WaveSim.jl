@@ -1,14 +1,14 @@
 using BenchmarkTools
-include("UltraSim.jl")
+include("ultrasim.jl")
 using UltraSim
 
 function main()
-  # number of elements
-  const num_transducers = 5
-  # elements firing delay
-  trans_delays = zeros(num_transducers)
+  focus = 0.03
+  aperture_size = 0.01
+  trans_delays = UltraSim.delays_from_focus(focus, aperture_size)  # elements firing delay
   # run the simulation
   images = UltraSim.ultrasim(trans_delays)
 end
 
-@benchmark images = main()
+# TODO: FIXME: This doesn't get displayed.
+# @benchmark images = main()
