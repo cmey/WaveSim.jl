@@ -105,22 +105,26 @@ function delays_from_focus(focus_depth, aperture_size)
     focus_coord = [0.0, focus_depth]
     trans_delays = zeros(num_elements)
 
-    # Define variables as in the reference paper (see above).
-    l0 = focus_depth
-    A = aperture_size
-    e = transducer_pitch
-    n = num_elements
-    v1 = c
-    # Compute dependent variables.
-    l02 = l0^2
-    Ae = A - e
-    first_part = sqrt(l02 + (Ae / 2) ^ 2)  # longest dist from focus to elem (i.e. to the edge)
+    if Inf == focus_depth
+        # Focus at infinity is considered planewave. Zero delay is fine.
+    else
+        # Define variables as in the reference paper (see above).
+        l0 = focus_depth
+        A = aperture_size
+        e = transducer_pitch
+        n = num_elements
+        v1 = c
+        # Compute dependent variables.
+        l02 = l0^2
+        Ae = A - e
+        first_part = sqrt(l02 + (Ae / 2) ^ 2)  # longest dist from focus to elem (i.e. to the edge)
 
-    # for transducers that will fire...
-    for (i_elem, x_elem) = enumerate(x_transducers)
-        k = i_elem
-        second_part = sqrt(l02 + (Ae * abs(n - 2k + 1) / (2n - 1)) ^ 2)  # offset_dist
-        trans_delays[i_elem] = (first_part - second_part) / v1
+        # for transducers that will fire...
+        for (i_elem, x_elem) = enumerate(x_transducers)
+            k = i_elem
+            second_part = sqrt(l02 + (Ae * abs(n - 2k + 1) / (2n - 1)) ^ 2)  # offset_dist
+            trans_delays[i_elem] = (first_part - second_part) / v1
+        end
     end
 
     return trans_delays
