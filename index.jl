@@ -35,7 +35,7 @@ end
 click_signal = Signal((0, 0))
 # signal indicating initial state of space-time model
 initial_board_signal = Signal(TimingBoard,
-	                          newboard(board_size[1], board_size[2]))
+                              newboard(board_size[1], board_size[2]))
 # signal indicating space-time model was modified, and link to update function
 board_signal = flatten(
   map(initial_board_signal) do b
@@ -59,8 +59,17 @@ block(board, i, j) =
   return intent(constant((i, j)), clickable(
     board.clicked[i, j] != 0 ? clicked_icon : unclicked_icon)) >>> click_signal
 
+# generate renderable images
+function compose_images(images)
+  inch = Escher.inch
+  return map(
+    image -> drawing(PNG(5Gadfly.inch, 5Gadfly.inch), image),
+    images
+  )
+end
+
 # the simulation results, shared
-global images = ultrasim(delays(newboard(board_size[1], board_size[2])))
+global composed_images = compose_images(ultrasim(delays(newboard(board_size[1], board_size[2]))))
 
 # render the new board, and run a new simulation
 function showboard(board::TimingBoard)
@@ -68,7 +77,7 @@ function showboard(board::TimingBoard)
     b = vbox([hbox([block(board, i, j) for i in 1:m]) for j in 1:n])
     
     trans_delays = delays(board)
-    global images = ultrasim(trans_delays)
+    global composed_images = compose_images(ultrasim(trans_delays))
     
     return b
 end
@@ -91,10 +100,10 @@ function main(window)
     map(showboard, board_signal, typ=Tile),
     # then display the results
     map(eventloop) do _
-      n_sim_time_steps = length(images)
+      n_sim_time_steps = length(composed_images)
       it = (it % n_sim_time_steps) + 1
 
-  	  spy(images[it])
+  	  composed_images[it]
   	  # bitmap("test", rand(UInt8,9), 0, 1, 3, 3, :image)
     end
   ) |> packacross(center)
