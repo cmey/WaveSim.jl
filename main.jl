@@ -12,9 +12,10 @@ function main()
 
   # Run the simulation.
   images = UltraSim.ultrasim(trans_delays)
+  beam_energy_map, transmit_time_map = UltraSim.beam_energy_map_and_transmit_time_map(images)
 
   # Display results.
-  imshowall(images)
+  imshowall(images, beam_energy_map, transmit_time_map)
 
   return images
 end

@@ -94,6 +94,23 @@ function ultrasim(trans_delays)
 end
 
 
+# Get the beam profile spatial map and transmit time of beam energy, where each pixel indicates the maximum energy that was seen at that place, and at what time.
+function beam_energy_map_and_transmit_time_map(images)
+    maxval, linindices = findmax(images, 3)
+
+    beam_energy_map = squeeze(maxval, 3)
+
+    transmit_time_map = similar(beam_energy_map)
+
+    for linind in eachindex(linindices)
+        x, y, t = ind2sub(images, linindices[linind])
+        transmit_time_map[linind] = t * temporal_res
+    end
+
+    return beam_energy_map, transmit_time_map
+end
+
+
 # Compute transmit time delays given focus depth [m] (impacts amount of delay) and aperture_size [m] (impacts how many elements are firing).
 # Adapted from: Tumsys, 2014, http://dx.doi.org/10.5755/j01.eee.20.3.3638
 function delays_from_focus(focus_depth, aperture_size)

@@ -14,26 +14,7 @@ function colorize_field(images)
 end
 
 
-# Get the beam profile spatial map and transmit time of beam energy, where each pixel indicates the maximum energy that was seen at that place, and at what time.
-function beam_energy_map_and_transmit_time_map(images)
-    maxval, linindices = findmax(images, 3)
-
-    beam_energy_map = squeeze(maxval, 3)
-
-    transmit_time_map = similar(beam_energy_map)
-
-    for linind in eachindex(linindices)
-        x, y, t = ind2sub(images, linindices[linind])
-        transmit_time_map[linind] = t
-    end
-
-    return beam_energy_map, transmit_time_map
-end
-
-
-function imshowall(images)
-    beam_energy_map, transmit_time_map = beam_energy_map_and_transmit_time_map(images)
-
+function imshowall(images, beam_energy_map, transmit_time_map)
     imshow(colorize_field(bilog(images)))
     imshow(bilog(beam_energy_map))
     imshow(transmit_time_map)
