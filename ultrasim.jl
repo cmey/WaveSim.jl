@@ -11,11 +11,11 @@ const F0 = 3_000_000.0  # [Hz]
 # resolution at which to divide the simulation time span
 const temporal_res = 0.1e-6  # [s]
 # spatial resolution of the simulation
-const spatial_res = [256, 256]  # [pixels]
-# field of view, x=0 centered on aperture center, z=0 at aperture plane
-const fov = [4e-2, 4e-2]  # [m]
+const spatial_res = [256, 512]  # [pixels]
+# Field of view, x then z. x=0 centered on aperture center, z=0 at aperture plane.
+const fov = [4e-2, 8e-2]  # [m]
 # time span to simulate
-const end_simulation_time = 26.0e-6  # [s] starts at 0 s
+const end_simulation_time = 56.0e-6  # [s] starts at 0 s
 
 # physical length of the transducer array
 const transducer_array_size = 0.03  # [m]
