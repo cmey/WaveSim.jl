@@ -21,15 +21,15 @@ function saveall(sim_params, images, beam_energy_map, transmit_time_map, output_
     title("beam energy map [dB]")
     xlabel("Depth [m]")
     ylabel("Azimuth [m]")
-    savefig(output_path * beam_energy_map_filename)
+    savefig(output_path * "_" * beam_energy_map_filename)
     close()
 
-    figure()
-    imshow(transmit_time_map .* 1e6, extent=extent)
-    colorbar()
-    title("transmit time map [µs]")
-    xlabel("Depth [m]")
-    ylabel("Azimuth [m]")
-    savefig(output_path * transmit_time_map_filename)
-    close()
+    #= figure() =#
+    #= imshow(transmit_time_map .* 1e6, extent=extent) =#
+    #= colorbar() =#
+    #= title("transmit time map [µs]") =#
+    #= xlabel("Depth [m]") =#
+    #= ylabel("Azimuth [m]") =#
+    #= savefig(output_path * "_" * transmit_time_map_filename) =#
+    #= close() =#
 end
