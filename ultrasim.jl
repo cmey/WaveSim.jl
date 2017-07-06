@@ -24,7 +24,7 @@ const transducer_pitch = 208e-6  # [m]
 # shape of the transmit pulse
 pulse_shape_func(phase) = cos(phase)
 # length of the transmit pulse
-const pulse_length = 2 / F0  # [s] 2 complete cycles
+const pulse_cycles = 2  # [cycles]  # length of the pulse
 
 
 # compute dependent parameters given global configuration
@@ -39,7 +39,7 @@ end
 
 
 # simulate one time step of wave propagation
-function simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_delays)
+function simulate_one_time_step!(image, t, image_pitch, tx_frequency, pulse_length, x_transducers, trans_delays)
   # println("simulate_one_time_step")
   transducers_that_are_firing = find(trans_delays .>= 0)
   trans_coord = [0.0, 0.0]  # [m] space
@@ -64,8 +64,8 @@ function simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_del
         time_to_transducer = dist_to_transducer / c
         time_to_reach = time_to_transducer + trans_delay
         # if the transducer wave reached this pixel...
-        if time_to_reach <= t <= time_to_reach+pulse_length
-          amp = pulse_shape_func((t - time_to_reach) * F0 * 2pi) * wave_spreading_factor
+        if time_to_reach <= t <= time_to_reach + pulse_length
+          amp = pulse_shape_func((t - time_to_reach) * tx_frequency * 2pi) * wave_spreading_factor
         else
           amp = 0.0
         end
@@ -78,7 +78,7 @@ end
 
 
 # run the simulation time steps
-function ultrasim(trans_delays)
+function ultrasim(trans_delays; tx_frequency=F0, pulse_length=pulse_cycles / F0)
   x_transducers, tvec, image_pitch = init(trans_delays)
 
   images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
@@ -86,7 +86,7 @@ function ultrasim(trans_delays)
   Threads.@threads for i_time in 1:length(tvec)
     t = tvec[i_time]
     image = view(images, :, :, i_time)
-    simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_delays)
+    simulate_one_time_step!(image, t, image_pitch, tx_frequency, pulse_length, x_transducers, trans_delays)
   end
 
   sim_params = Dict("temporal_res" => temporal_res, "spatial_res" => spatial_res, "fov" => fov)
