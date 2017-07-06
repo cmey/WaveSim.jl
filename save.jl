@@ -5,7 +5,7 @@ const beam_energy_map_filename = "beam_energy_map.pdf"
 const transmit_time_map_filename = "transmit_time_map.pdf"
 
 
-function saveall(images, beam_energy_map, transmit_time_map, output_path)
+function saveall(sim_params, images, beam_energy_map, transmit_time_map, output_path)
     #= colorized_field = colorize_field(bilog(images)) =#
     #= figure() =#
     #= for i_time in size(colorize_field)[3] =#

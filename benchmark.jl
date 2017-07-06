@@ -7,7 +7,7 @@ function main()
   aperture_size = 0.01
   trans_delays = UltraSim.delays_from_focus(focus, aperture_size)  # elements firing delay
   # run the simulation
-  images = UltraSim.ultrasim(trans_delays)
+  sim_params, images = UltraSim.ultrasim(trans_delays)
 end
 
 # TODO: FIXME: This doesn't get displayed.

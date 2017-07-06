@@ -11,11 +11,11 @@ function main()
   trans_delays = UltraSim.delays_from_focus(focus, aperture_size)
 
   # Run the simulation.
-  images = UltraSim.ultrasim(trans_delays)
+  sim_params, images = UltraSim.ultrasim(trans_delays)
   beam_energy_map, transmit_time_map = UltraSim.beam_energy_map_and_transmit_time_map(images)
 
   # Display results.
-  imshowall(images, beam_energy_map, transmit_time_map)
+  imshowall(sim_params, images, beam_energy_map, transmit_time_map)
 
   return images
 end

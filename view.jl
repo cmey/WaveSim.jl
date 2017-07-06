@@ -14,7 +14,7 @@ function colorize_field(images)
 end
 
 
-function imshowall(images, beam_energy_map, transmit_time_map)
+function imshowall(sim_params, images, beam_energy_map, transmit_time_map)
     imshow(colorize_field(bilog(images)))
     imshow(bilog(beam_energy_map))
     imshow(transmit_time_map)

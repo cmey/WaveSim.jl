@@ -90,7 +90,8 @@ function ultrasim(trans_delays)
     simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_delays, wavelength)
   end
 
-  return images
+  sim_params = Dict("temporal_res" => temporal_res, "spatial_res" => spatial_res, "fov" => fov)
+  return sim_params, images
 end
 
 
