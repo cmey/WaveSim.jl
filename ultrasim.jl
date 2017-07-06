@@ -29,18 +29,17 @@ const pulse_length = 2 / F0  # [s] 2 complete cycles
 
 # compute dependent parameters given global configuration
 function init(trans_delays)
-  wavelength = c/F0 # [m]
   n_transducers = length(trans_delays)
   x_transducers = [transducer_pitch * itrans for itrans in 1:n_transducers]  # [m]
   x_transducers += fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
   time_vec = collect(0.0:temporal_res:end_simulation_time)
   image_pitch = fov ./ spatial_res
-  return wavelength, x_transducers, time_vec, image_pitch
+  return x_transducers, time_vec, image_pitch
 end
 
 
 # simulate one time step of wave propagation
-function simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_delays, wavelength)
+function simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_delays)
   # println("simulate_one_time_step")
   transducers_that_are_firing = find(trans_delays .>= 0)
   trans_coord = [0.0, 0.0]  # [m] space
@@ -80,14 +79,14 @@ end
 
 # run the simulation time steps
 function ultrasim(trans_delays)
-  wavelength, x_transducers, tvec, image_pitch = init(trans_delays)
+  x_transducers, tvec, image_pitch = init(trans_delays)
 
   images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
 
   Threads.@threads for i_time in 1:length(tvec)
     t = tvec[i_time]
     image = view(images, :, :, i_time)
-    simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_delays, wavelength)
+    simulate_one_time_step!(image, t, image_pitch, x_transducers, trans_delays)
   end
 
   sim_params = Dict("temporal_res" => temporal_res, "spatial_res" => spatial_res, "fov" => fov)
