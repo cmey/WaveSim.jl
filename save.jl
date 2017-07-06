@@ -12,8 +12,11 @@ function saveall(sim_params, images, beam_energy_map, transmit_time_map, output_
     #=     imshow(colorized_field[:, :, i_time]) =#
     #=     savefig() =#
     #= end =#
+    fov = sim_params["fov"]
+    extent=[0, fov[2], -1/2 * fov[1], 1/2 * fov[1]]
+
     figure()
-    imshow(bilog(beam_energy_map))
+    imshow(bilog(beam_energy_map), extent=extent)
     colorbar()
     title("beam energy map [dB]")
     xlabel("Depth [m]")
@@ -22,7 +25,7 @@ function saveall(sim_params, images, beam_energy_map, transmit_time_map, output_
     close()
 
     figure()
-    imshow(transmit_time_map .* 1e6)
+    imshow(transmit_time_map .* 1e6, extent=extent)
     colorbar()
     title("transmit time map [µs]")
     xlabel("Depth [m]")
