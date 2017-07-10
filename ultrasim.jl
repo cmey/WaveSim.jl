@@ -111,17 +111,21 @@ function beam_energy_map_and_transmit_time_map(images)
 end
 
 
-# Compute transmit time delays given focus depth [m] (impacts amount of delay) and aperture_size [m] (impacts how many elements are firing).
-# Adapted from: Tumsys, 2014, http://dx.doi.org/10.5755/j01.eee.20.3.3638
-function delays_from_focus(focus_depth, aperture_size)
+# Compute transmit time delays for transducer elements given aperture_size [m] (impacts how many elements are firing) and focus depth [m] and steer angle [deg] (both impact amount of delay).
+# Note: Steer angle is about center of active aperture.
+# Since current implementation places the active aperture about the center of the physical aperture, steer angle is also about center of physical aperture.
+# Focus equation adapted from: Tumsys, 2014, http://dx.doi.org/10.5755/j01.eee.20.3.3638
+# Steer equation adapted from: Ramm, 1983, http://dx.doi.org/10.1109/TBME.1983.325149
+function delays_from_focus_and_steer(focus_depth, steer_angle, aperture_size)
     num_elements = round(Int, aperture_size / transducer_pitch)
 
     x_transducers = [transducer_pitch * ielem for ielem in 1:num_elements]  # [m]
     x_transducers += fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
 
-    focus_coord = [0.0, focus_depth]
     trans_delays = zeros(num_elements)
 
+    # Focus
+    focus_coord = [0.0, focus_depth]
     if Inf == focus_depth
         # Focus at infinity is considered planewave. Zero delay is fine.
     else
@@ -143,6 +147,19 @@ function delays_from_focus(focus_depth, aperture_size)
             trans_delays[i_elem] = (first_part - second_part) / v1
         end
     end
+
+    # Steer
+    # Define variables as in the reference paper (see above).
+    θ = deg2rad(steer_angle)
+    d = transducer_pitch
+    # n * d = x_elem
+    # for transducers that will fire...
+    for (i_elem, x_elem) = enumerate(x_transducers)
+        trans_delays[i_elem] += x_elem / c * sin(θ)
+    end
+
+    # Causal delays
+    trans_delays -= minimum(trans_delays)
 
     return trans_delays
 end
