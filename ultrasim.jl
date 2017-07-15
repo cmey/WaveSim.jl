@@ -44,6 +44,8 @@ function simulate_one_time_step!(image, t, image_pitch, tx_frequency, pulse_leng
   transducers_that_are_firing = find(trans_delays .>= 0)
   trans_coord = [0.0, 0.0]  # [m] space
   pix_coord = [0.0, 0.0]
+  one_over_c = 1.0 / c  # For computation speed improvement [s/m]
+
   for y in 1:spatial_res[2]
     pix_coord[2] = y * image_pitch[2]  # [m]
     for x in 1:spatial_res[1]
@@ -61,7 +63,7 @@ function simulate_one_time_step!(image, t, image_pitch, tx_frequency, pulse_leng
         # wave is spreading spherically in space, energy spreading loss goes with r^2, amp with r
         # see: https://ccrma.stanford.edu/~jos/pasp/Spherical_Waves_Point_Source.html
         wave_spreading_factor = 1 / dist_to_transducer
-        time_to_transducer = dist_to_transducer / c
+        time_to_transducer = dist_to_transducer * one_over_c
         time_to_reach = time_to_transducer + trans_delay
         # if the transducer wave reached this pixel...
         if time_to_reach <= t <= time_to_reach + pulse_length
