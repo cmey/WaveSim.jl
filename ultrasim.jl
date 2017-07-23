@@ -1,6 +1,6 @@
 # UltraSim.jl, ultrasound simulator.
 # Wave propagation computation.
-# Christophe MEYER, 2016
+# Christophe MEYER, 2016-2017
 module UltraSim
 
 # Configuration
