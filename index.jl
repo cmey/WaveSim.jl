@@ -1,4 +1,4 @@
-# UltraSim.jl, ultrasound simulator.
+# WaveSim.jl, wave propagation simulator.
 # Web front-end using Escher.jl
 # Christophe MEYER, 2016
 using Colors
@@ -9,7 +9,7 @@ using Gadfly
 #### Model ####
 
 # the simulator
-include("ultrasim.jl")
+include("wavesim.jl")
 # the timing model for transducer firings
 include("timingmodel.jl")
 # size of the space-time user config of firings
@@ -69,7 +69,7 @@ function compose_images(images)
 end
 
 # the simulation results, shared
-global composed_images = compose_images(ultrasim(delays(newboard(board_size[1], board_size[2]))))
+global composed_images = compose_images(wavesim(delays(newboard(board_size[1], board_size[2]))))
 
 # render the new board, and run a new simulation
 function showboard(board::TimingBoard)
@@ -77,7 +77,7 @@ function showboard(board::TimingBoard)
     b = vbox([hbox([block(board, i, j) for i in 1:m]) for j in 1:n])
     
     trans_delays = delays(board)
-    global composed_images = compose_images(ultrasim(trans_delays))
+    global composed_images = compose_images(wavesim(trans_delays))
     
     return b
 end
@@ -94,7 +94,7 @@ function main(window)
   # vertical align
   vbox(
     vskip(2em),
-    title(3, "UltraSim.jl"),
+    title(3, "WaveSim.jl"),
     vskip(2em),
     # display the board
     map(showboard, board_signal, typ=Tile),

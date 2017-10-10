@@ -1,4 +1,4 @@
-# UltraSim.jl, ultrasound simulator.
+# WaveSim.jl, wave propagation simulator.
 # Space-time model defining when transducers fire.
 # Christophe MEYER, 2016
 using Lazy

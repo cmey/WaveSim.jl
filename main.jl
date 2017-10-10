@@ -1,6 +1,6 @@
-include("ultrasim.jl")
+include("wavesim.jl")
 include("view.jl")
-using UltraSim
+using WaveSim
 
 # Run the simulator and display results.
 function main()
@@ -10,11 +10,11 @@ function main()
   dbrange = 40
 
   # Compute focusing delays for the elements of the phased array.
-  trans_delays = UltraSim.delays_from_focus_and_steer(focus, steer, aperture_size)
+  trans_delays = WaveSim.delays_from_focus_and_steer(focus, steer, aperture_size)
 
   # Run the simulation.
-  sim_params, images = UltraSim.ultrasim(trans_delays)
-  beam_energy_map, transmit_time_map = UltraSim.beam_energy_map_and_transmit_time_map(images)
+  sim_params, images = WaveSim.wavesim(trans_delays)
+  beam_energy_map, transmit_time_map = WaveSim.beam_energy_map_and_transmit_time_map(images)
 
   # Display results.
   imshowall(sim_params, images, beam_energy_map, transmit_time_map, dbrange)

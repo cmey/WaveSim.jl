@@ -1,7 +1,7 @@
-# UltraSim.jl, ultrasound simulator.
+# WaveSim.jl, wave propagation simulator.
 # Wave propagation computation.
 # Christophe MEYER, 2016-2017
-module UltraSim
+module WaveSim
 
 # Configuration
 # speed of sound
@@ -80,7 +80,7 @@ end
 
 
 # run the simulation time steps
-function ultrasim(trans_delays; tx_frequency=F0, pulse_length=pulse_cycles / F0)
+function wavesim(trans_delays; tx_frequency=F0, pulse_length=pulse_cycles / F0)
   x_transducers, tvec, image_pitch = init(trans_delays)
 
   images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
@@ -167,4 +167,4 @@ function delays_from_focus_and_steer(focus_depth, steer_angle, aperture_size)
 end
 
 
-end  # module UltraSim
+end  # module WaveSim
