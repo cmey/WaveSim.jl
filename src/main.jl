@@ -19,8 +19,8 @@ function main()
   # Display results.
   imshowall(sim_params, images, beam_energy_map, transmit_time_map, dbrange)
 
-  return images
+  return beam_energy_map, transmit_time_map, images
 end
 
+beam_energy_map, transmit_time_map, images = main()
 
-images = main()
