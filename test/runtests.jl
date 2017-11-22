@@ -1,4 +1,1 @@
-using WaveSim
-using Base.Test
-
-WaveSim.main()
+include("../src/main.jl")
