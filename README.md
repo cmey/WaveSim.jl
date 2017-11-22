@@ -2,6 +2,11 @@
 
 Simulates the propagation of waves from multiple transmitting elements.
 
+## Package status
+
+[![Build Status](https://travis-ci.org/cmey/WaveSim.jl.svg?branch=master)](https://travis-ci.org/cmey/WaveSim.jl)
+[![Build status](https://ci.appveyor.com/api/projects/status/8pqnoxopn8g8fstv?svg=true)](https://ci.appveyor.com/project/cmey/wavesim-jl)
+
 ## Usage
 
 ```
