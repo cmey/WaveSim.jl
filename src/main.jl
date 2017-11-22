@@ -1,4 +1,4 @@
-include("wavesim.jl")
+include("WaveSim.jl")
 include("view.jl")
 using WaveSim
 

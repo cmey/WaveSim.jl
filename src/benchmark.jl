@@ -1,5 +1,5 @@
 using BenchmarkTools
-include("wavesim.jl")
+include("WaveSim.jl")
 using WaveSim
 
 function main()

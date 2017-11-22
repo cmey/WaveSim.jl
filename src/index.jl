@@ -9,7 +9,7 @@ using Gadfly
 #### Model ####
 
 # the simulator
-include("wavesim.jl")
+include("WaveSim.jl")
 # the timing model for transducer firings
 include("timingmodel.jl")
 # size of the space-time user config of firings

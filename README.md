@@ -5,7 +5,7 @@ Simulates the propagation of waves from multiple transmitting elements.
 ## Usage
 
 ```
-include("wavesim.jl")
+include("WaveSim.jl")
 using WaveSim
 
 # Setup parameters.
