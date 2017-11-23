@@ -1,5 +1,5 @@
 include("bilog.jl")
-using Colors, Gtk.ShortNames, ImageView
+using Colors, ImageView
 
 
 function colorize_field(images)
