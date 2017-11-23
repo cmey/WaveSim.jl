@@ -2,9 +2,5 @@ julia 0.6
 
 BenchmarkTools
 Colors
-Compose
-Escher
-Gadfly
 ImageView
-Lazy
 PyPlot
