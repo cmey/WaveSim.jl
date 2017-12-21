@@ -32,15 +32,15 @@ imshowall(images)
 
 Visualize the wave propagating through space, over time:
 
-[TODO: add animated gif here]
+![wave propagation animation](images/wave_propagation.gif)
 
 Get a spatial heatmap of where the transmitted energy is sent:
 
-[TODO: add picture here]
+![beam energy map](images/beam_energy_map.png)
 
 Know the transmit time delay everwhere in space:
 
-[TODO: add picture here]
+![beam energy map](images/transmit_time_map.png)
 
 ## Tips
 
