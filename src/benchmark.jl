@@ -14,5 +14,5 @@ function main()
 end
 
 # TODO: FIXME: This doesn't get displayed.
-# @benchmark images = main()
-println("Can now execute: \"@benchmark images = main()\"")
+# @benchmark main()
+println("Can now execute: \"@benchmark main()\"")
