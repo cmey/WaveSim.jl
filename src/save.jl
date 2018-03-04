@@ -1,3 +1,4 @@
+using Parameters
 using PyCall
 using PyPlot
 include("bilog.jl")
@@ -8,8 +9,8 @@ const wave_propagation_filename = "wave_propagation"
 const beam_energy_map_filename = "beam_energy_map.png"
 const transmit_time_map_filename = "transmit_time_map.png"
 
-function saveall(sim_params, images, beam_energy_map, transmit_time_map, output_path="images", dbrange=40)
-    fov = sim_params["fov"]
+function saveall(images, beam_energy_map, transmit_time_map, sim_params, output_path="images")
+    @unpack fov, dbrange = sim_params
     extent=[0, fov[2], -1/2 * fov[1], 1/2 * fov[1]]
 
     wave_field = bilog(images, dbrange)

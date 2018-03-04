@@ -1,46 +1,62 @@
 # WaveSim.jl, wave propagation simulator.
 # Wave propagation computation.
-# Christophe MEYER, 2016-2017
+# Christophe MEYER, 2016-2018
 module WaveSim
 
-# Configuration
-# speed of sound
-const c = 1540.0  # [m/s]
-# transmit center frequency
-const F0 = 3_000_000.0  # [Hz]
-# resolution at which to divide the simulation time span
-const temporal_res = 0.1e-6  # [s]
-# spatial resolution of the simulation
-const spatial_res = [256, 512]  # [pixels]
-# Field of view, x then z. x=0 centered on aperture center, z=0 at aperture plane.
-const fov = [4e-2, 8e-2]  # [m]
-# time span to simulate
-const end_simulation_time = 56.0e-6  # [s] starts at 0 s
+using Parameters
 
-# physical length of the transducer array
-const transducer_array_size = 0.03  # [m]
-# spacing between physical elements of transducer array
-const transducer_pitch = 208e-6  # [m]
-# shape of the transmit pulse
-pulse_shape_func(phase) = cos(phase)
-# length of the transmit pulse
-const pulse_cycles = 2  # [cycles]  # length of the pulse
+export WaveSimParameters
+
+# Configuration
+@with_kw struct WaveSimParameters
+  # Transmit center frequency.
+  tx_frequency::Float64 = 3_000_000.0  # [Hz]
+  # Length of the transmit pulse.
+  pulse_cycles::Float64 = 2  # [cycles]
+  # Speed of sound.
+  c::Float64 = 1540.0  # [m/s]
+  # Resolution at which to divide the simulation time span.
+  temporal_res::Float64 = 0.1e-6  # [s]
+  # Time span to simulate.
+  end_simulation_time::Float64 = 56.0e-6  # [s] starts at 0 s
+  # Spatial resolution of the simulation.
+  spatial_res::Array{Int, 1} = [256, 512]  # [pixels]
+  # Field of view, x then z. x=0 centered on aperture center, z=0 at aperture plane.
+  fov::Array{Float64, 1} = [4e-2, 8e-2]  # [m]
+  # Physical length of the transducer array.
+  transducer_array_size::Float64 = 0.03  # [m]
+  # Spacing between physical elements of transducer array.
+  transducer_pitch::Float64 = 208e-6  # [m]
+  # Active aperture size of transducer (centered)
+  aperture_size::Float64 = 0.02  # [m]
+  # Distance from transducer to focus point, Inf means plane wave.
+  focus_depth::Float64 = 0.03  # [m]
+  # Steering angle in azimuth.
+  steer_angle::Float64 = 10.0  # [deg]
+  # Shape of the transmit pulse.
+  pulse_shape_func = phase -> cos(phase)
+  # Display range.
+  dbrange::Float64 = 40
+end
 
 
 # compute dependent parameters given global configuration
-function init(trans_delays)
+function init(trans_delays, sim_params)
+  @unpack tx_frequency, transducer_pitch, spatial_res, temporal_res, end_simulation_time, fov, pulse_cycles = sim_params
   n_transducers = length(trans_delays)
   x_transducers = [transducer_pitch * itrans for itrans in 1:n_transducers]  # [m]
   x_transducers += fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
   time_vec = collect(0.0:temporal_res:end_simulation_time)
-  image_pitch = fov ./ spatial_res
-  return x_transducers, time_vec, image_pitch
+  pulse_length = pulse_cycles / tx_frequency
+  return x_transducers, time_vec, pulse_length
 end
 
 
 # simulate one time step of wave propagation
-function simulate_one_time_step!(image, t, image_pitch, tx_frequency, pulse_length, x_transducers, trans_delays)
+function simulate_one_time_step!(image, t, trans_delays, x_transducers, pulse_length, sim_params)
   # println("simulate_one_time_step")
+  @unpack tx_frequency, c, spatial_res, fov, pulse_shape_func = sim_params
+  image_pitch = fov ./ spatial_res
   transducers_that_are_firing = find(trans_delays .>= 0)
   trans_coord = [0.0, 0.0]  # [m] space
   pix_coord = [0.0, 0.0]
@@ -80,24 +96,26 @@ end
 
 
 # run the simulation time steps
-function wavesim(trans_delays; tx_frequency=F0, pulse_length=pulse_cycles / F0)
-  x_transducers, tvec, image_pitch = init(trans_delays)
+function wavesim(trans_delays, sim_params)
+  @unpack tx_frequency, pulse_cycles, spatial_res = sim_params
+  x_transducers, tvec, pulse_length = init(trans_delays, sim_params)
 
   images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
 
   Threads.@threads for i_time in 1:length(tvec)
     t = tvec[i_time]
     image = view(images, :, :, i_time)
-    simulate_one_time_step!(image, t, image_pitch, tx_frequency, pulse_length, x_transducers, trans_delays)
+    simulate_one_time_step!(image, t, trans_delays, x_transducers, pulse_length, sim_params)
   end
 
-  sim_params = Dict("temporal_res" => temporal_res, "spatial_res" => spatial_res, "fov" => fov)
-  return sim_params, images
+  return images
 end
 
 
 # Get the beam profile spatial map and transmit time of beam energy, where each pixel indicates the maximum energy that was seen at that place, and at what time.
-function beam_energy_map_and_transmit_time_map(images)
+function beam_energy_map_and_transmit_time_map(images, sim_params)
+    @unpack temporal_res = sim_params
+
     maxval, linindices = findmax(images, 3)
 
     beam_energy_map = squeeze(maxval, 3)
@@ -118,7 +136,9 @@ end
 # Since current implementation places the active aperture about the center of the physical aperture, steer angle is also about center of physical aperture.
 # Focus equation adapted from: Tumsys, 2014, http://dx.doi.org/10.5755/j01.eee.20.3.3638
 # Steer equation adapted from: Ramm, 1983, http://dx.doi.org/10.1109/TBME.1983.325149
-function delays_from_focus_and_steer(focus_depth, steer_angle, aperture_size)
+function delays_from_focus_and_steer(sim_params)
+    @unpack focus_depth, steer_angle, aperture_size, c, transducer_pitch, fov = sim_params
+
     num_elements = round(Int, aperture_size / transducer_pitch)
 
     x_transducers = [transducer_pitch * ielem for ielem in 1:num_elements]  # [m]

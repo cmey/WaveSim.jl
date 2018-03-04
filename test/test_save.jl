@@ -1,8 +1,8 @@
 include("../src/benchmark.jl")
 include("../src/save.jl")
 
-sim_params, images = main();
+images, sim_params = main();
 
-beam_energy_map, transmit_time_map = WaveSim.beam_energy_map_and_transmit_time_map(images);
+beam_energy_map, transmit_time_map = WaveSim.beam_energy_map_and_transmit_time_map(images, sim_params);
 
-saveall(sim_params, images, beam_energy_map, transmit_time_map, ".")
+saveall(images, beam_energy_map, transmit_time_map, sim_params, ".")
