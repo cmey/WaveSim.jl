@@ -1,20 +1,23 @@
 environment:
   matrix:
-  - JULIAVERSION: "julialang/bin/winnt/x64/0.6/julia-0.6-latest-win64.exe"
+  - JULIA_URL: "https://julialang-s3.julialang.org/bin/winnt/x64/0.6/julia-0.6-latest-win64.exe"
+    PYTHONDIR: "use_conda"
+    PYTHON: "use_conda"
 
 install:
-# Download most recent Julia Windows binary
+  - ps: "[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12"
+  # Download most recent Julia Windows binary
   - ps: (new-object net.webclient).DownloadFile(
-        $("http://s3.amazonaws.com/"+$env:JULIAVERSION),
+        $env:JULIA_URL,
         "C:\projects\julia-binary.exe")
-# Run installer silently, output to C:\projects\julia
+  # Run installer silently, output to C:\projects\julia
   - C:\projects\julia-binary.exe /S /D=C:\projects\julia
 
 build_script:
-# Need to convert from shallow to complete for Pkg.clone to work
+  # Need to convert from shallow to complete for Pkg.clone to work
   - IF EXIST .git\shallow (git fetch --unshallow)
   - C:\projects\julia\bin\julia -e "versioninfo();
       Pkg.clone(pwd(), \"WaveSim\"); Pkg.build(\"WaveSim\")"
 
 test_script:
-  - C:\projects\julia\bin\julia -e "Pkg.test(\"WaveSim\")"
+  - C:\projects\julia\bin\julia --check-bounds=yes -e "Pkg.test(\"WaveSim\")"
