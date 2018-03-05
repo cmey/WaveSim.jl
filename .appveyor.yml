@@ -15,6 +15,8 @@ install:
 build_script:
   # Need to convert from shallow to complete for Pkg.clone to work
   - IF EXIST .git\shallow (git fetch --unshallow)
+  # Update Julia packages metadata.
+  - C:\projects\julia\bin\julia -e "Pkg.update()"
   # Explicitly call Conda.add("matplotlib")
   - C:\projects\julia\bin\julia -e "ENV[\"PYTHON\"]=\"\"; Pkg.add(\"Conda\"); using Conda; Conda.update(); Conda.add(\"matplotlib\"); Pkg.add(\"PyCall\"); Pkg.build(\"PyCall\"); Pkg.add(\"PyPlot\");"
   - C:\projects\julia\bin\julia -e "versioninfo();
