@@ -53,9 +53,8 @@ end
 
 
 # simulate one time step of wave propagation
-function simulate_one_time_step!(image, t, trans_delays, x_transducers, pulse_length, sim_params)
+function simulate_one_time_step!(image, t, trans_delays, x_transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func)
   # println("simulate_one_time_step")
-  @unpack tx_frequency, c, spatial_res, fov, pulse_shape_func = sim_params
   image_pitch = fov ./ spatial_res
   transducers_that_are_firing = find(trans_delays .>= 0)
   trans_coord = [0.0, 0.0]  # [m] space
@@ -98,6 +97,7 @@ end
 # run the simulation time steps
 function wavesim(trans_delays, sim_params)
   @unpack tx_frequency, pulse_cycles, spatial_res = sim_params
+  @unpack c, fov, pulse_shape_func = sim_params
   x_transducers, tvec, pulse_length = init(trans_delays, sim_params)
 
   images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
@@ -105,7 +105,7 @@ function wavesim(trans_delays, sim_params)
   Threads.@threads for i_time in 1:length(tvec)
     t = tvec[i_time]
     image = view(images, :, :, i_time)
-    simulate_one_time_step!(image, t, trans_delays, x_transducers, pulse_length, sim_params)
+    simulate_one_time_step!(image, t, trans_delays, x_transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func)
   end
 
   return images
