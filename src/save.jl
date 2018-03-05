@@ -19,13 +19,13 @@ function saveall(images, beam_energy_map, transmit_time_map, sim_params, output_
     fig = figure()
     ims = []
     for i_time in 1:size(wave_field, 3)
-        im = imshow(wave_field[:, :, i_time], extent=extent, cmap="viridis", vmin=vmin, vmax=vmax)
+        im = PyPlot.imshow(wave_field[:, :, i_time], extent=extent, cmap="viridis", vmin=vmin, vmax=vmax)
         if 1 == i_time
-            colorbar()
+            PyPlot.colorbar()
         end
-        title("Wave amplitude [dB]")
-        xlabel("Depth [m]")
-        ylabel("Azimuth [m]")
+        PyPlot.title("Wave amplitude [dB]")
+        PyPlot.xlabel("Depth [m]")
+        PyPlot.ylabel("Azimuth [m]")
         push!(ims, PyCall.PyObject[im])
     end
     #= close() =#
@@ -39,21 +39,21 @@ function saveall(images, beam_energy_map, transmit_time_map, sim_params, output_
                extra_args=["-vcodec", "libx264", "-pix_fmt", "yuv420p"])
     #= ani[:save]("ani.gif"); =#
 
-    figure()
-    imshow(bilog(beam_energy_map, dbrange), extent=extent)
-    colorbar()
-    title("Beam energy map [dB]")
-    xlabel("Depth [m]")
-    ylabel("Azimuth [m]")
-    savefig(joinpath(output_path, beam_energy_map_filename))
-    close()
+    PyPlot.figure()
+    PyPlot.imshow(bilog(beam_energy_map, dbrange), extent=extent)
+    PyPlot.colorbar()
+    PyPlot.title("Beam energy map [dB]")
+    PyPlot.xlabel("Depth [m]")
+    PyPlot.ylabel("Azimuth [m]")
+    PyPlot.savefig(joinpath(output_path, beam_energy_map_filename))
+    PyPlot.close()
 
-    figure()
-    imshow(transmit_time_map .* 1e6, extent=extent)
-    colorbar()
-    title("Transmit time map [µs]")
-    xlabel("Depth [m]")
-    ylabel("Azimuth [m]")
-    savefig(joinpath(output_path, transmit_time_map_filename))
-    close()
+    PyPlot.figure()
+    PyPlot.imshow(transmit_time_map .* 1e6, extent=extent)
+    PyPlot.colorbar()
+    PyPlot.title("Transmit time map [µs]")
+    PyPlot.xlabel("Depth [m]")
+    PyPlot.ylabel("Azimuth [m]")
+    PyPlot.savefig(joinpath(output_path, transmit_time_map_filename))
+    PyPlot.close()
 end
