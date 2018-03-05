@@ -20,6 +20,4 @@ function main()
   return images, sim_params
 end
 
-# TODO: FIXME: This doesn't get displayed.
-# @benchmark main()
-println("Can now execute: \"@benchmark main()\"")
+display(@benchmark main())
