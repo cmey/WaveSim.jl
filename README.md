@@ -14,20 +14,25 @@ Simulates the propagation of waves from multiple transmitting elements.
 include("WaveSim.jl")
 using WaveSim
 
-# Setup parameters.
-focus = 0.03  # [m]
-steer = 0.0  # [deg]
-aperture_size = 0.01  # [m]
+# Define simulation parameters (use many default values, see WaveSimParameters).
+sim_params = WaveSimParameters(
+    focus_depth = 0.03,  # [m]
+    steer_angle = 10.0,  # [deg]
+    aperture_size = 0.02,  # [m]
+    temporal_res = 0.1e-6,  # [s]
+    spatial_res = [128, 256]  # [pixels]
+)
 
 # Compute focusing delays for the elements of the phased array.
-trans_delays = WaveSim.delays_from_focus_and_steer(focus, steer, aperture_size)
+trans_delays = WaveSim.delays_from_focus_and_steer(sim_params)
 
 # Run the simulation.
-images = WaveSim.wavesim(trans_delays)
+images = WaveSim.wavesim(trans_delays, sim_params)
+beam_energy_map, transmit_time_map = WaveSim.beam_energy_map_and_transmit_time_map(images, sim_params)
 
 # Display results.
 include("view.jl")
-imshowall(images)
+imshowall(images, beam_energy_map, transmit_time_map, sim_params)
 ```
 
 Visualize the wave propagating through space, over time:
@@ -53,4 +58,3 @@ The code supports multi-threading, make use of it by setting:
 or start `julia` directly with:
 
     JULIA_NUM_THREADS=`getconf _NPROCESSORS_ONLN` julia
-
