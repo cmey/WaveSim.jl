@@ -4,7 +4,7 @@ using PyPlot
 include("bilog.jl")
 include("colorize_field.jl")
 
-@pyimport matplotlib.animation as anim
+@pyimport matplotlib.animation as anim  # After using PyPlot, so matplotlib installed via conda.
 const wave_propagation_filename = "wave_propagation"
 const beam_energy_map_filename = "beam_energy_map.png"
 const transmit_time_map_filename = "transmit_time_map.png"
