@@ -11,7 +11,7 @@ Simulates the propagation of waves from multiple transmitting elements.
 ## Usage
 
 ```
-include("WaveSim.jl")
+include("src/WaveSim.jl")
 using WaveSim
 
 # Define simulation parameters (use many default values, see WaveSimParameters).
@@ -31,7 +31,7 @@ images = WaveSim.wavesim(trans_delays, sim_params)
 beam_energy_map, transmit_time_map = WaveSim.beam_energy_map_and_transmit_time_map(images, sim_params)
 
 # Display results.
-include("view.jl")
+include("src/view.jl")
 imshowall(images, beam_energy_map, transmit_time_map, sim_params)
 ```
 
