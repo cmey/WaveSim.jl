@@ -1,6 +1,8 @@
 language: julia
 julia:
   - 0.6
+env:
+  - CONDA_JL_VERSION="3"
 matrix:
   include:
     - os: linux
