@@ -3,7 +3,7 @@ julia:
   - 0.6
 before_install:
   # Install ffmpeg.
-  - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install -y libav-tools; else brew install ffmpeg; fi
+  - if [ $TRAVIS_OS_NAME = linux ]; then sudo apt-get install -y libav-tools imagemagick; else brew install ffmpeg imagemagick; fi
   # Update Julia packages metadata.
   - julia -e 'Pkg.update()'
   # Use PyPlot's Automated Matplotlib installation through Conda.
