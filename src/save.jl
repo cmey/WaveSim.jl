@@ -35,7 +35,8 @@ function saveall(images, beam_energy_map, transmit_time_map, sim_params, output_
     # b) matplotlib is built with ffmpeg support enabled
     ani = anim.ArtistAnimation(fig, ims, interval=30, blit=true, repeat=false)
     anim_filename = wave_propagation_filename
-    ani[:save](joinpath(output_path, anim_filename),
+    ffmpeg_writer = anim.FFMpegWriter()
+    ani[:save](joinpath(output_path, anim_filename), ffmpeg_writer,
                extra_args=["-vcodec", "libx264", "-pix_fmt", "yuv420p"])
     #= ani[:save]("ani.gif"); =#
 
