@@ -4,6 +4,7 @@
 module WaveSim
 
 using Parameters
+using StaticArrays
 
 export WaveSimParameters
 
@@ -20,9 +21,9 @@ export WaveSimParameters
   # Time span to simulate.
   end_simulation_time::Float64 = 56.0e-6  # [s] starts at 0 s
   # Spatial resolution of the simulation.
-  spatial_res::Array{Int, 1} = [256, 512]  # [pixels]
+  spatial_res::SVector{2} = @SVector [256, 512]  # [pixels]
   # Field of view, x then z. x=0 centered on aperture center, z=0 at aperture plane.
-  fov::Array{Float64, 1} = [4e-2, 8e-2]  # [m]
+  fov::SVector{2} = @SVector [4e-2, 8e-2]  # [m]
   # Physical length of the transducer array.
   transducer_array_size::Float64 = 0.03  # [m]
   # Spacing between physical elements of transducer array.
@@ -57,8 +58,8 @@ function simulate_one_time_step!(image, t, trans_delays, x_transducers, pulse_le
   # println("simulate_one_time_step")
   image_pitch = fov ./ spatial_res
   transducers_that_are_firing = find(trans_delays .>= 0)
-  trans_coord = [0.0, 0.0]  # [m] space
-  pix_coord = [0.0, 0.0]
+  trans_coord = zeros(MVector{2})  # [m] space
+  pix_coord = zeros(MVector{2})  # [m] space
   one_over_c = 1.0 / c  # For computation speed improvement [s/m]
 
   for y in 1:spatial_res[2]
