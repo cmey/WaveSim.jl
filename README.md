@@ -8,10 +8,16 @@ Simulates the propagation of waves from multiple transmitting elements.
 |-------|-------|---------|
 |[![Build Status](https://travis-matrix-badges.herokuapp.com/repos/cmey/WaveSim.jl/branches/master/2)](https://travis-ci.org/cmey/WaveSim.jl)|[![Build Status](https://travis-matrix-badges.herokuapp.com/repos/cmey/WaveSim.jl/branches/master/1)](https://travis-ci.org/cmey/WaveSim.jl)|[![Build status](https://ci.appveyor.com/api/projects/status/8pqnoxopn8g8fstv?svg=true)](https://ci.appveyor.com/project/cmey/wavesim-jl)|
 
+## Installation
+
+Until this package gets registered, do once per system:
+```
+(v1.1) pkg> dev WaveSim.jl
+```
+
 ## Usage
 
 ```
-include("src/WaveSim.jl")
 using WaveSim
 
 # Define simulation parameters (use many default values, see WaveSimParameters).
@@ -21,18 +27,18 @@ sim_params = WaveSimParameters(
     aperture_size = 0.02,  # [m]
     temporal_res = 0.1e-6,  # [s]
     spatial_res = [128, 256]  # [pixels]
-)
+);
 
 # Compute focusing delays for the elements of the phased array.
-trans_delays = WaveSim.delays_from_focus_and_steer(sim_params)
+trans_delays = WaveSim.delays_from_focus_and_steer(sim_params);
 
 # Run the simulation.
-images = WaveSim.wavesim(trans_delays, sim_params)
-beam_energy_map, transmit_time_map = WaveSim.beam_energy_map_and_transmit_time_map(images, sim_params)
+images = WaveSim.wavesim(trans_delays, sim_params);
+beam_energy_map, transmit_time_map = WaveSim.beam_energy_map_and_transmit_time_map(images, sim_params);
 
 # Display results.
 include("src/view.jl")
-imshowall(images, beam_energy_map, transmit_time_map, sim_params)
+imshowall(images, beam_energy_map, transmit_time_map, sim_params);
 ```
 
 Visualize the wave propagating through space, over time:

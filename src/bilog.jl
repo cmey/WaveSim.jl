@@ -9,8 +9,8 @@ function bilog(datain, dbrange=40)
         maxabs = minabs
     end
 
-    norm_mag = (abs.(datain) + eps()) / maxabs
-    out = sign.(datain) .* (clamp.(20 * log10.(norm_mag), -dbrange, 0) + dbrange)
+    norm_mag = (abs.(datain) .+ eps()) / maxabs
+    out = sign.(datain) .* (clamp.(20 * log10.(norm_mag), -dbrange, 0) .+ dbrange)
 
     return out
 end

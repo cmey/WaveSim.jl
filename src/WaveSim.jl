@@ -5,6 +5,7 @@ module WaveSim
 
 using Parameters
 using StaticArrays
+using Statistics
 
 export WaveSimParameters
 
@@ -50,7 +51,7 @@ function init(trans_delays, sim_params)
   @unpack tx_frequency, transducer_pitch, spatial_res, temporal_res, end_simulation_time, fov, pulse_cycles, apodization_shape = sim_params
   n_transducers = length(trans_delays)
   x_transducers = [transducer_pitch * itrans for itrans in 1:n_transducers]  # [m]
-  x_transducers += fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
+  x_transducers .+= fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
   time_vec = collect(0.0:temporal_res:end_simulation_time)
   pulse_length = pulse_cycles / tx_frequency
   if apodization_shape == Rect
@@ -66,7 +67,7 @@ end
 function simulate_one_time_step!(image, t, trans_delays, x_transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, apodization_vec)
   # println("simulate_one_time_step")
   image_pitch = fov ./ spatial_res
-  transducers_that_are_firing = find(trans_delays .>= 0)
+  transducers_that_are_firing = findall(trans_delays .>= 0)
   trans_coord = zeros(MVector{2})  # [m] space
   pix_coord = zeros(MVector{2})  # [m] space
   one_over_c = 1.0 / c  # For computation speed improvement [s/m]
@@ -127,14 +128,14 @@ end
 function beam_energy_map_and_transmit_time_map(images, sim_params)
     @unpack temporal_res = sim_params
 
-    maxval, linindices = findmax(images, 3)
+    maxval, linindices = findmax(images, dims=3)
 
-    beam_energy_map = squeeze(maxval, 3)
+    beam_energy_map = dropdims(maxval, dims=3)
 
     transmit_time_map = similar(beam_energy_map)
 
     for linind in eachindex(linindices)
-        x, y, t = ind2sub(images, linindices[linind])
+        x, y, t = Tuple(CartesianIndices(images)[linindices[linind]])
         transmit_time_map[linind] = t * temporal_res
     end
 
@@ -153,7 +154,7 @@ function delays_from_focus_and_steer(sim_params)
     num_elements = round(Int, aperture_size / transducer_pitch)
 
     x_transducers = [transducer_pitch * ielem for ielem in 1:num_elements]  # [m]
-    x_transducers += fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
+    x_transducers .+= fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
 
     trans_delays = zeros(num_elements)
 
@@ -192,7 +193,7 @@ function delays_from_focus_and_steer(sim_params)
     end
 
     # Causal delays
-    trans_delays -= minimum(trans_delays)
+    trans_delays .-= minimum(trans_delays)
 
     return trans_delays
 end

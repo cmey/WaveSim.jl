@@ -1,4 +1,3 @@
-include("WaveSim.jl")
 include("view.jl")
 using WaveSim
 
