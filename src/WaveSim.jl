@@ -1,6 +1,6 @@
 # WaveSim.jl, wave propagation simulator.
 # Wave propagation computation.
-# Christophe MEYER, 2016-2018
+# Christophe MEYER, 2016-2019
 module WaveSim
 
 using Parameters
@@ -43,6 +43,8 @@ export WaveSimParameters
   apodization_shape::ApodizationShape = Rect
   # Display range.
   dbrange::Float64 = 40
+  # Plot orientation: beam is horizontal or vertical.
+  orientation::Symbol = :horizontal
 end
 
 

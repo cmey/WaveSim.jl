@@ -10,8 +10,21 @@ const beam_energy_map_filename = "beam_energy_map.png"
 const transmit_time_map_filename = "transmit_time_map.png"
 
 function saveall(images, beam_energy_map, transmit_time_map, sim_params, output_path="images")
-    @unpack fov, dbrange = sim_params
-    extent=[0, fov[2], -1/2 * fov[1], 1/2 * fov[1]]
+    @unpack fov, dbrange, orientation = sim_params
+
+    extent = [0, fov[2], -1/2 * fov[1], 1/2 * fov[1]]
+    xlabel = "Depth [m]"
+    ylabel = "Azimuth [m]"
+
+    vertical_enabled = orientation == :vertical
+    if vertical_enabled
+        extent = [-1/2 * fov[1], 1/2 * fov[1], fov[2], 0]
+        xlabel, ylabel = ylabel, xlabel
+
+        images = mapslices(rotr90, images; dims=[1, 2])
+        beam_energy_map = rotr90(beam_energy_map)
+        transmit_time_map = rotr90(transmit_time_map)
+    end
 
     wave_field = bilog(images, dbrange)
     vmin, vmax = extrema(wave_field)
@@ -24,8 +37,8 @@ function saveall(images, beam_energy_map, transmit_time_map, sim_params, output_
             PyPlot.colorbar()
         end
         PyPlot.title("Wave amplitude [dB]")
-        PyPlot.xlabel("Depth [m]")
-        PyPlot.ylabel("Azimuth [m]")
+        PyPlot.xlabel(xlabel)
+        PyPlot.ylabel(ylabel)
         push!(ims, PyCall.PyObject[im])
     end
     #= close() =#
@@ -43,8 +56,8 @@ function saveall(images, beam_energy_map, transmit_time_map, sim_params, output_
     PyPlot.imshow(bilog(beam_energy_map, dbrange), extent=extent)
     PyPlot.colorbar()
     PyPlot.title("Beam energy map [dB]")
-    PyPlot.xlabel("Depth [m]")
-    PyPlot.ylabel("Azimuth [m]")
+    PyPlot.xlabel(xlabel)
+    PyPlot.ylabel(ylabel)
     PyPlot.savefig(joinpath(output_path, beam_energy_map_filename))
     PyPlot.close()
 
@@ -52,8 +65,8 @@ function saveall(images, beam_energy_map, transmit_time_map, sim_params, output_
     PyPlot.imshow(transmit_time_map .* 1e6, extent=extent)
     PyPlot.colorbar()
     PyPlot.title("Transmit time map [µs]")
-    PyPlot.xlabel("Depth [m]")
-    PyPlot.ylabel("Azimuth [m]")
+    PyPlot.xlabel(xlabel)
+    PyPlot.ylabel(ylabel)
     PyPlot.savefig(joinpath(output_path, transmit_time_map_filename))
     PyPlot.close()
 
