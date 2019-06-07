@@ -4,7 +4,7 @@ using PyPlot
 include("bilog.jl")
 include("colorize_field.jl")
 
-@pyimport matplotlib.animation as anim  # After using PyPlot, so matplotlib installed via conda.
+anim = pyimport("matplotlib.animation")  # After using PyPlot, so matplotlib installed via conda.
 const wave_propagation_filename = "wave_propagation.mp4"
 const beam_energy_map_filename = "beam_energy_map.png"
 const transmit_time_map_filename = "transmit_time_map.png"
@@ -36,8 +36,8 @@ function saveall(images, beam_energy_map, transmit_time_map, sim_params, output_
     ani = anim.ArtistAnimation(fig, ims, interval=30, blit=true, repeat=false)
     anim_filename = wave_propagation_filename
     ffmpeg_writer = anim.FFMpegWriter()
-    ani[:save](joinpath(output_path, anim_filename), ffmpeg_writer)
-    #= ani[:save]("ani.gif"); =#
+    ani.save(joinpath(output_path, anim_filename), ffmpeg_writer)
+    #= ani.save("ani.gif"); =#
 
     PyPlot.figure()
     PyPlot.imshow(bilog(beam_energy_map, dbrange), extent=extent)
