@@ -56,4 +56,6 @@ function saveall(images, beam_energy_map, transmit_time_map, sim_params, output_
     PyPlot.ylabel("Azimuth [m]")
     PyPlot.savefig(joinpath(output_path, transmit_time_map_filename))
     PyPlot.close()
+
+    return  # nothing
 end
