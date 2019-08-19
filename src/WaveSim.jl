@@ -102,6 +102,7 @@ function simulate_one_time_step!(image, t, trans_delays, x_transducers, pulse_le
         amp *= apodization_vec[i_trans]
         # wave interference
         image[x,y] += amp
+        # TODO: maybe scale by pi/4 (Kirchhoff's formula)
       end
     end
   end
