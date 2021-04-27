@@ -10,7 +10,7 @@ Simulates the propagation of waves from multiple transmitting elements.
 
 ## Installation
 
-Until this package gets registered, do once per system:
+Until this package gets registered, do once per system (from outside the package folder):
 ```
 (v1.1) pkg> dev WaveSim.jl
 ```
