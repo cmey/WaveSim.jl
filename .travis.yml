@@ -1,6 +1,6 @@
 language: julia
 julia:
-  - 0.7
+  - 1.6
 env:
   - CONDA_JL_VERSION="3"
 matrix:
@@ -28,17 +28,17 @@ before_install:
   # Test if ffmpeg is installed.
   - julia -e 'run(`ffmpeg -version`)'
   # Update Julia packages metadata.
-  - julia -e 'Pkg.update()'
+  - julia -e 'import Pkg; Pkg.update()'
   # Use PyPlot's Automated Matplotlib installation through Conda.
   # Work around (part 1/2) matplotlib backend error leading to "matplotlib.pyplot could not be found by pyimport": can't just set env PYTHON="".
-  - julia -e 'ENV["PYTHON"]=""; Pkg.add("Conda"); using Conda; Conda.update(); Conda.add("matplotlib"); Pkg.add("PyCall"); Pkg.build("PyCall"); Pkg.add("PyPlot");'
+  - julia -e 'ENV["PYTHON"]=""; import Pkg; Pkg.add("Conda"); using Conda; Conda.update(); Conda.add("matplotlib"); Pkg.add("PyCall"); Pkg.build("PyCall"); Pkg.add("PyPlot");'
   # Precompile packages so test is not so long.
-  - export LD_LIBRARY_PATH=$HOME/.julia/v0.6/Conda/deps/usr/lib; julia -e 'using PyPlot'
+  - export LD_LIBRARY_PATH=$HOME/.julia/v1.6/Conda/deps/usr/lib; julia -e 'using PyPlot'
 script:
   # Work around (part 2/2) matplotlib backend error leading to "matplotlib.pyplot could not be found by pyimport": point LD_LIBRARY_PATH to Conda libs.
-  - export LD_LIBRARY_PATH=$HOME/.julia/v0.6/Conda/deps/usr/lib; julia --check-bounds=yes -e 'Pkg.clone(pwd());Pkg.build("WaveSim");Pkg.test("WaveSim"; coverage=true);'
+  - export LD_LIBRARY_PATH=$HOME/.julia/v1.6/Conda/deps/usr/lib; julia --check-bounds=yes -e 'import Pkg; Pkg.clone(pwd()); Pkg.build("WaveSim"); Pkg.test("WaveSim"; coverage=true);'
 after_success:
   # Push coverage results to Coveralls
-  - julia -e 'cd(Pkg.dir("WaveSim")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
+  - julia -e 'import Pkg; cd(Pkg.dir("WaveSim")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
   # Push coverage results to Codecov
-  - julia -e 'cd(Pkg.dir("WaveSim")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+  - julia -e 'import Pkg; cd(Pkg.dir("WaveSim")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'

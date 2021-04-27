@@ -1,6 +1,6 @@
 environment:
   matrix:
-  - JULIA_URL: "https://julialang-s3.julialang.org/bin/winnt/x64/0.7/julia-0.7-latest-win64.exe"
+  - JULIA_URL: "https://julialang-s3.julialang.org/bin/winnt/x64/1.6/julia-1.6-latest-win64.exe"
     PYTHON: ""
     CONDA_JL_VERSION: "3"
 
@@ -21,13 +21,13 @@ build_script:
   # Test if ffmpeg is installed.
   - C:\projects\julia\bin\julia -e "run(`ffmpeg -version`)"
   # Update Julia packages metadata.
-  - C:\projects\julia\bin\julia -e "Pkg.update()"
+  - C:\projects\julia\bin\julia -e "import Pkg; Pkg.update()"
   # Explicitly call Conda.add("matplotlib")
-  - C:\projects\julia\bin\julia -e "ENV[\"PYTHON\"]=\"\"; Pkg.add(\"Conda\"); using Conda; Conda.update(); Conda.add(\"matplotlib\"); Pkg.add(\"PyCall\"); Pkg.build(\"PyCall\"); Pkg.add(\"PyPlot\");"
+  - C:\projects\julia\bin\julia -e "ENV[\"PYTHON\"]=\"\"; import Pkg; Pkg.add(\"Conda\"); using Conda; Conda.update(); Conda.add(\"matplotlib\"); Pkg.add(\"PyCall\"); Pkg.build(\"PyCall\"); Pkg.add(\"PyPlot\");"
   - C:\projects\julia\bin\julia -e "versioninfo();
-      Pkg.clone(pwd(), \"WaveSim\"); Pkg.build(\"WaveSim\")"
+      Pkg.clone(pwd(), \"WaveSim\"); import Pkg; Pkg.build(\"WaveSim\")"
   # Precompile packages so test is not so long.
   - C:\projects\julia\bin\julia -e "using PyPlot"
 
 test_script:
-  - C:\projects\julia\bin\julia --check-bounds=yes -e "Pkg.test(\"WaveSim\")"
+  - C:\projects\julia\bin\julia --check-bounds=yes -e "import Pkg; Pkg.test(\"WaveSim\")"
