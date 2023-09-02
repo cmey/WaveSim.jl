@@ -4,15 +4,19 @@ Simulates the propagation of waves from multiple transmitting elements.
 
 ## Package status
 
-| macOS | Linux | Windows |
-|-------|-------|---------|
-|[![Build Status](https://travis-matrix-badges.herokuapp.com/repos/cmey/WaveSim.jl/branches/master/2)](https://travis-ci.org/cmey/WaveSim.jl)|[![Build Status](https://travis-matrix-badges.herokuapp.com/repos/cmey/WaveSim.jl/branches/master/1)](https://travis-ci.org/cmey/WaveSim.jl)|[![Build status](https://ci.appveyor.com/api/projects/status/8pqnoxopn8g8fstv?svg=true)](https://ci.appveyor.com/project/cmey/wavesim-jl)|
+| Windows |
+|-------|
+|[![Build status](https://ci.appveyor.com/api/projects/status/8pqnoxopn8g8fstv?svg=true)](https://ci.appveyor.com/project/cmey/wavesim-jl)|
 
 ## Installation
 
-Until this package gets registered, do once per system (from outside the package folder):
+Until this package gets registered, open the Julia environment from inside the package folder:
 ```
-(v1.1) pkg> dev WaveSim.jl
+julia --project=.
+# Check that the WaveSim environment is open:
+# press `]`
+(WaveSim) pkg>
+# press `backspace`
 ```
 
 ## Usage

@@ -1,8 +1,0 @@
-julia 0.7
-
-BenchmarkTools
-Colors
-ImageView
-Parameters
-PyPlot
-StaticArrays
