@@ -1,4 +1,4 @@
-using Colors
+using Makie.Colors
 
 
 function colorize_field(images)
@@ -11,4 +11,3 @@ function colorize_field(images)
 
     return cmap[images_indexed]
 end
-

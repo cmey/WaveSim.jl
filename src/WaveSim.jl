@@ -19,14 +19,14 @@ export WaveSimParameters
   pulse_cycles::Float64 = 2  # [cycles]
   # Speed of sound.
   c::Float64 = 1540.0  # [m/s]
-  # Resolution at which to divide the simulation time span.
-  temporal_res::Float64 = 0.1e-6  # [s]
   # Time span to simulate.
   end_simulation_time::Float64 = 56.0e-6  # [s] starts at 0 s
-  # Spatial resolution of the simulation.
-  spatial_res::SVector{2} = @SVector [256, 512]  # [pixels]
+  # Resolution at which to divide the simulation time span.
+  temporal_res::Float64 = 0.1e-6  # [s]
   # Field of view, x then z. x=0 centered on aperture center, z=0 at aperture plane.
   fov::SVector{2} = @SVector [4e-2, 8e-2]  # [m]
+  # Spatial resolution of the simulation, x then z.
+  spatial_res::SVector{2} = @SVector [256, 512]  # [pixels]
   # Physical length of the transducer array.
   transducer_array_size::Float64 = 0.03  # [m]
   # Spacing between physical elements of transducer array.
@@ -41,7 +41,7 @@ export WaveSimParameters
   pulse_shape_func = phase -> cos(phase)
   # Shape of the transmit aperture apodization.
   apodization_shape::ApodizationShape = Rect
-  # Display range.
+  # Display dynamic range.
   dbrange::Float64 = 40
   # Plot orientation: beam is horizontal or vertical.
   orientation::Symbol = :horizontal

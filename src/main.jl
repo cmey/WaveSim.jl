@@ -1,4 +1,3 @@
-include("view.jl")
 using WaveSim
 
 # Run the simulator and display results.
@@ -19,10 +18,15 @@ function main()
   images = WaveSim.wavesim(trans_delays, sim_params)
   beam_energy_map, transmit_time_map = WaveSim.beam_energy_map_and_transmit_time_map(images, sim_params)
 
-  # Display results.
-  imshowall(images, beam_energy_map, transmit_time_map, sim_params)
-
-  return beam_energy_map, transmit_time_map, images
+  return beam_energy_map, transmit_time_map, images, sim_params
 end
 
-beam_energy_map, transmit_time_map, images = main()
+beam_energy_map, transmit_time_map, images, sim_params = main()
+
+# Display results.
+include("view.jl")
+imshowall(images, beam_energy_map, transmit_time_map, sim_params)
+
+# Save results.
+include("save.jl")
+saveall(images, beam_energy_map, transmit_time_map, sim_params, "images")
