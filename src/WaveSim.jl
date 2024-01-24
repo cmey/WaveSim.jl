@@ -42,11 +42,27 @@ export WaveSimParameters
   # Shape of the transmit aperture apodization.
   apodization_shape::ApodizationShape = Rect
   # Display dynamic range.
-  dbrange::Float64 = 40
+  dbrange::Float64 = 40  # [dB]
   # Plot orientation: beam is horizontal or vertical.
   orientation::Symbol = :horizontal
 end
 
+# compute temporal and spatial resolution fine enough to support the pulse
+function autores(sim_params, trans_delays)
+  @unpack tx_frequency, fov, aperture_size, c, pulse_cycles = sim_params
+  # for our implementation, temporal resolution is way more important than spatial resolution
+  # we're not interested in the detailed look of the pulse cycle, but rather
+  # at each pixel, we need good temporal sampling for correct interference buildup.
+  temporal_res = 1/tx_frequency / 8  # 8 time points per cycle
+  wavelength = c / tx_frequency
+  spatial_res = Int.(round.(fov / wavelength)) * 4  # 4 samples per wavelength
+  spatial_res = max(spatial_res, [256, 512])  # but at least 256x512, for human visualization purposes.
+  # End simulation when pulse reaches outside of FOV (for "worst" case i.e. longest path),
+  # since setup is symmetric, computing one side is enough.
+  time_top_trans_to_bot_corner = sqrt(fov[2]^2 + (fov[1]/2 + aperture_size/2)^2) / c
+  end_simulation_time = time_top_trans_to_bot_corner + maximum(trans_delays) + pulse_cycles * 1/tx_frequency
+  WaveSimParameters(sim_params; temporal_res=temporal_res, spatial_res=spatial_res, end_simulation_time=end_simulation_time)
+end
 
 # compute dependent parameters given global configuration
 function init(trans_delays, sim_params)

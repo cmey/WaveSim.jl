@@ -13,10 +13,6 @@ Simulates the propagation of waves from multiple transmitting elements.
 Until this package gets registered, open the Julia environment from inside the package folder:
 ```
 julia --project=.
-# Check that the WaveSim environment is open:
-# press `]`
-(WaveSim) pkg>
-# press `backspace`
 ```
 
 ## Usage
@@ -24,17 +20,18 @@ julia --project=.
 ```
 using WaveSim
 
-# Define simulation parameters (use many default values, see WaveSimParameters).
+# Define simulation parameters (use many default values, see the WaveSimParameters struct).
 sim_params = WaveSimParameters(
     focus_depth = 0.03,  # [m]
     steer_angle = 10.0,  # [deg]
     aperture_size = 0.02,  # [m]
-    temporal_res = 0.1e-6,  # [s]
-    spatial_res = [128, 256]  # [pixels]
 );
 
-# Compute focusing delays for the elements of the phased array.
+# Compute focusing delay for the elements of the phased array.
 trans_delays = WaveSim.delays_from_focus_and_steer(sim_params);
+
+# (optional) Compute optimized "best" spatial and temporal parameters.
+sim_params = WaveSim.autores(sim_params, trans_delays)
 
 # Run the simulation.
 images = WaveSim.wavesim(trans_delays, sim_params);
@@ -53,7 +50,7 @@ Visualize the wave propagating through space, over time:
 
 ![wave propagation animation](images/wave_propagation.gif)
 
-Get a spatial heatmap of where the transmitted energy is sent:
+Get a spatial heatmap of where the energy went:
 
 ![beam energy map](images/beam_energy_map.png)
 

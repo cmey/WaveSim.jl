@@ -7,12 +7,19 @@ function main()
     focus_depth = 0.03,  # [m]
     steer_angle = 10.0,  # [deg]
     aperture_size = 0.02,  # [m]
-    temporal_res = 0.1e-6,  # [s]
-    spatial_res = [256, 512]  # [pixels]
+    # tx_frequency = 3_000_000.0,  # [Hz]
+    # focus_depth = Inf,  # [m]
+    # steer_angle = 0.0,  # [deg]
+    # transducer_pitch = 205e-6,  # [m]
+    # transducer_array_size = 0.01312,  # [m]
+    # aperture_size = 0.01312,  # [m]
   )
 
   # Compute focusing delays for the elements of the phased array.
   trans_delays = WaveSim.delays_from_focus_and_steer(sim_params)
+
+  # Compute optimized "best" spatial and temporal parameters.
+  sim_params = WaveSim.autores(sim_params, trans_delays)
 
   # Run the simulation.
   images = WaveSim.wavesim(trans_delays, sim_params)
