@@ -14,35 +14,35 @@ export WaveSimParameters
 # Configuration
 @with_kw struct WaveSimParameters
   # Transmit center frequency.
-  tx_frequency::Float64 = 3_000_000.0  # [Hz]
+  tx_frequency::Float32 = 3_000_000  # [Hz]
   # Length of the transmit pulse.
-  pulse_cycles::Float64 = 2  # [cycles]
+  pulse_cycles::Float32 = 2  # [cycles]
   # Speed of sound.
-  c::Float64 = 1540.0  # [m/s]
+  c::Float32 = 1540  # [m/s]
   # Time span to simulate.
-  end_simulation_time::Float64 = 56.0e-6  # [s] starts at 0 s
+  end_simulation_time::Float32 = 56.0e-6  # [s] starts at 0 s
   # Resolution at which to divide the simulation time span.
-  temporal_res::Float64 = 0.1e-6  # [s]
+  temporal_res::Float32 = 0.1e-6  # [s]
   # Field of view, x then z. x=0 centered on aperture center, z=0 at aperture plane.
-  fov::SVector{2} = @SVector [4e-2, 8e-2]  # [m]
+  fov::SVector{2, Float32} = @SVector [4e-2, 8e-2]  # [m]
   # Spatial resolution of the simulation, x then z.
-  spatial_res::SVector{2} = @SVector [256, 512]  # [pixels]
+  spatial_res::SVector{2, Int} = @SVector [256, 512]  # [pixels]
   # Physical length of the transducer array.
-  transducer_array_size::Float64 = 0.03  # [m]
+  transducer_array_size::Float32 = 0.03  # [m]
   # Spacing between physical elements of transducer array.
-  transducer_pitch::Float64 = 208e-6  # [m]
+  transducer_pitch::Float32 = 208e-6  # [m]
   # Active aperture size of transducer (centered)
-  aperture_size::Float64 = 0.02  # [m]
+  aperture_size::Float32 = 0.02  # [m]
   # Distance from transducer to focus point, Inf means plane wave.
-  focus_depth::Float64 = 0.03  # [m]
+  focus_depth::Float32 = 0.03  # [m]
   # Steering angle in azimuth.
-  steer_angle::Float64 = 10.0  # [deg]
+  steer_angle::Float32 = 10.0  # [deg]
   # Shape of the transmit pulse.
   pulse_shape_func = phase -> cos(phase)
   # Shape of the transmit aperture apodization.
   apodization_shape::ApodizationShape = Rect
   # Display dynamic range.
-  dbrange::Float64 = 40  # [dB]
+  dbrange::Float32 = 40  # [dB]
   # Plot orientation: beam is horizontal or vertical.
   orientation::Symbol = :horizontal
 end
@@ -70,10 +70,10 @@ function init(trans_delays, sim_params)
   n_transducers = length(trans_delays)
   x_transducers = [transducer_pitch * itrans for itrans in 1:n_transducers]  # [m]
   x_transducers .+= fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
-  time_vec = collect(0.0:temporal_res:end_simulation_time)
+  time_vec = collect(0.0f0:temporal_res:end_simulation_time)
   pulse_length = pulse_cycles / tx_frequency
   if apodization_shape == Rect
-      apodization_vec = ones(n_transducers)
+      apodization_vec = ones(Float32, n_transducers)
   else
       apodization_vec = [(sin(i*pi/(n_transducers-1)))^2 for i in 1:n_transducers]
   end
@@ -86,9 +86,9 @@ function simulate_one_time_step!(image, t, trans_delays, x_transducers, pulse_le
   # println("simulate_one_time_step")
   image_pitch = fov ./ spatial_res
   transducers_that_are_firing = findall(trans_delays .>= 0)
-  trans_coord = zeros(MVector{2})  # [m] space
-  pix_coord = zeros(MVector{2})  # [m] space
-  one_over_c = 1.0 / c  # For computation speed improvement [s/m]
+  trans_coord = zeros(MVector{2, Float32})  # [m] space
+  pix_coord = zeros(MVector{2, Float32})  # [m] space
+  one_over_c = 1.0f0 / c  # For computation speed improvement [s/m]
 
   for y in 1:spatial_res[2]
     pix_coord[2] = y * image_pitch[2]  # [m]
@@ -96,30 +96,27 @@ function simulate_one_time_step!(image, t, trans_delays, x_transducers, pulse_le
       pix_coord[1] = x * image_pitch[1]  # [m]
 
       # for transducers that will fire...
+      amp = 0.0f0
       @inbounds for i_trans in transducers_that_are_firing
         xt = x_transducers[i_trans]  # index
         trans_delay = trans_delays[i_trans]
         trans_coord[1] = xt
-        trans_coord[2] = 0.0
+        trans_coord[2] = 0.0f0
         # from pixel to transducer
         dist_to_transducer = sqrt((trans_coord[1] - pix_coord[1])^2 +
                                   (trans_coord[2] - pix_coord[2])^2)
         # wave is spreading spherically in space, energy spreading loss goes with r^2, amp with r
         # see: https://ccrma.stanford.edu/~jos/pasp/Spherical_Waves_Point_Source.html
-        wave_spreading_factor = 1 / dist_to_transducer
+        wave_spreading_factor = 1.0f0 / dist_to_transducer
         time_to_transducer = dist_to_transducer * one_over_c
         time_to_reach = time_to_transducer + trans_delay
-        # if the transducer wave reached this pixel...
+        # if the transducer wave has reached this pixel...
         if time_to_reach <= t <= time_to_reach + pulse_length
-          amp = pulse_shape_func((t - time_to_reach) * tx_frequency * 2pi) * wave_spreading_factor
-        else
-          amp = 0.0
+          # wave interference
+          amp += apodization_vec[i_trans] * pulse_shape_func((t - time_to_reach) * tx_frequency * 2.0f0 * pi) * wave_spreading_factor
         end
-        amp *= apodization_vec[i_trans]
-        # wave interference
-        image[x,y] += amp
-        # TODO: maybe scale by pi/4 (Kirchhoff's formula)
       end
+      image[x,y] = amp  # write back to memory only once per pixel (precompute stack variable amp for all transducers)
     end
   end
 end
@@ -175,7 +172,7 @@ function delays_from_focus_and_steer(sim_params)
     x_transducers = [transducer_pitch * ielem for ielem in 1:num_elements]  # [m]
     x_transducers .+= fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
 
-    trans_delays = zeros(num_elements)
+    trans_delays = zeros(Float32, num_elements)
 
     # Focus
     focus_coord = [0.0, focus_depth]
