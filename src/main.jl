@@ -13,6 +13,7 @@ function main()
     # transducer_pitch = 205e-6,  # [m]
     # transducer_array_size = 0.01312,  # [m]
     # aperture_size = 0.01312,  # [m]
+    dbrange = 50,  # [dB]
   )
 
   # Compute focusing delays for the elements of the phased array.
