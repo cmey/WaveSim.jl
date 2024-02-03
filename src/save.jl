@@ -8,6 +8,8 @@ const beam_energy_map_filename = "beam_energy_map.png"
 const transmit_time_map_filename = "transmit_time_map.png"
 
 function saveall(images, beam_energy_map, transmit_time_map, sim_params, output_path="images")
+    mkpath(output_path)
+
     @unpack fov, dbrange, orientation = sim_params
 
     extent = [0, fov[2], -1/2 * fov[1], 1/2 * fov[1]]
