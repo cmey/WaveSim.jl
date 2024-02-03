@@ -4,9 +4,7 @@ Simulates the propagation of waves from multiple transmitting elements.
 
 ## Package status
 
-| Windows |
-|-------|
-|[![Build status](https://ci.appveyor.com/api/projects/status/8pqnoxopn8g8fstv?svg=true)](https://ci.appveyor.com/project/cmey/wavesim-jl)|
+![CI status](https://github.com/cmey/WaveSim.jl/actions/workflows/ci.yml/badge.svg)
 
 ## Installation
 
