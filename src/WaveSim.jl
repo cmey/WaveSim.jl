@@ -12,7 +12,7 @@ export WaveSimParameters
 @enum ApodizationShape Rect Hann
 
 # Configuration
-@with_kw struct WaveSimParameters
+@with_kw struct WaveSimParameters{pulse_shape_func_T}
   # Transmit center frequency.
   tx_frequency::Float32 = 3_000_000  # [Hz]
   # Length of the transmit pulse.
@@ -38,7 +38,7 @@ export WaveSimParameters
   # Steering angle in azimuth.
   steer_angle::Float32 = 10.0  # [deg]
   # Shape of the transmit pulse.
-  pulse_shape_func = phase -> cos(phase)
+  pulse_shape_func::pulse_shape_func_T = phase -> cos(phase)
   # Shape of the transmit aperture apodization.
   apodization_shape::ApodizationShape = Rect
   # Display dynamic range.
@@ -57,6 +57,7 @@ function autores(sim_params, trans_delays)
   wavelength = c / tx_frequency
   spatial_res = Int.(round.(fov / wavelength)) * 4  # 4 samples per wavelength
   spatial_res = max(spatial_res, [256, 512])  # but at least 256x512, for human visualization purposes.
+  spatial_res = SVector(spatial_res[1], spatial_res[2])
   # End simulation when pulse reaches outside of FOV (for "worst" case i.e. longest path),
   # since setup is symmetric, computing one side is enough.
   time_top_trans_to_bot_corner = sqrt(fov[2]^2 + (fov[1]/2 + aperture_size/2)^2) / c
@@ -75,7 +76,7 @@ function init(trans_delays, sim_params)
   if apodization_shape == Rect
       apodization_vec = ones(Float32, n_transducers)
   else
-      apodization_vec = [(sin(i*pi/(n_transducers-1)))^2 for i in 1:n_transducers]
+      apodization_vec = Float32[(sin(i*pi/(n_transducers-1)))^2 for i in 1:n_transducers]
   end
   return x_transducers, time_vec, pulse_length, apodization_vec
 end
