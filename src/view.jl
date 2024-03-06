@@ -3,7 +3,6 @@ include("colorize_field.jl")
 using ImageView
 using Parameters
 
-
 function imshowall(images, beam_energy_map, transmit_time_map, sim_params)
     @unpack dbrange, orientation = sim_params
 

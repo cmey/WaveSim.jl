@@ -1,6 +1,5 @@
 # WaveSim.jl, wave propagation simulator.
-# Wave propagation computation.
-# Christophe MEYER, 2016-2019
+# Christophe Meyer, 2016-2024
 module WaveSim
 
 using Parameters

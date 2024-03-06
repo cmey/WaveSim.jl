@@ -1,5 +1,4 @@
 # This function creates bipolar (i.e. signed) log of the input.
-
 function bilog(datain, dbrange=40)
     datain = real.(datain)
     maxabs = abs.(maximum(datain))

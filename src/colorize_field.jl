@@ -1,6 +1,5 @@
 using Makie.Colors
 
-
 function colorize_field(images)
     num_colormap_entries = 100
     cmap = colormap("RdBu", num_colormap_entries)
