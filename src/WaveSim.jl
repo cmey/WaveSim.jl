@@ -26,8 +26,6 @@ export WaveSimParameters
   fov::SVector{2, Float32} = @SVector [4e-2, 8e-2]  # [m]
   # Spatial resolution of the simulation, x then z.
   spatial_res::SVector{2, Int} = @SVector [256, 512]  # [pixels]
-  # Physical length of the transducer array.
-  transducer_array_size::Float32 = 0.03  # [m]
   # Spacing between physical elements of transducer array.
   transducer_pitch::Float32 = 208e-6  # [m]
   # Active aperture size of transducer (centered)

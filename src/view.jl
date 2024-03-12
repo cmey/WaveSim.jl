@@ -6,8 +6,7 @@ using Parameters
 function imshowall(images, beam_energy_map, transmit_time_map, sim_params)
     @unpack dbrange, orientation = sim_params
 
-    vertical_enabled = orientation == :vertical
-    if vertical_enabled
+    if orientation == :vertical
         images = mapslices(rotr90, images; dims=[1, 2])
         beam_energy_map = rotr90(beam_energy_map)
         transmit_time_map = rotr90(transmit_time_map)

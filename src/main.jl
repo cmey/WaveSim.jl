@@ -11,7 +11,6 @@ function main()
     # focus_depth = Inf,  # [m]
     # steer_angle = 0.0,  # [deg]
     # transducer_pitch = 205e-6,  # [m]
-    # transducer_array_size = 0.01312,  # [m]
     # aperture_size = 0.01312,  # [m]
     dbrange = 50,  # [dB]
   )
