@@ -30,6 +30,8 @@ export WaveSimParameters
   transducer_pitch::Float32 = 208e-6  # [m]
   # Active aperture size of transducer (centered)
   aperture_size::Float32 = 0.02  # [m]
+  # Radius of curvature of the aperture. Inf means a flat aperture.
+  aperture_radius = Inf  # [m]
   # Distance from transducer to focus point, Inf means plane wave.
   focus_depth::Float32 = 0.03  # [m]
   # Steering angle in azimuth.
@@ -44,7 +46,7 @@ export WaveSimParameters
   orientation::Symbol = :horizontal
 end
 
-# compute temporal and spatial resolution fine enough to support the pulse
+# compute temporal and spatial resolutions fine enough to support the pulse
 function autores(sim_params, trans_delays)
   @unpack tx_frequency, fov, aperture_size, c, pulse_cycles = sim_params
   # for our implementation, temporal resolution is way more important than spatial resolution
@@ -52,9 +54,9 @@ function autores(sim_params, trans_delays)
   # at each pixel, we need good temporal sampling for correct interference buildup.
   temporal_res = 1/tx_frequency / 8  # 8 time points per cycle
   wavelength = c / tx_frequency
-  spatial_res = Int.(round.(fov / wavelength)) * 4  # 4 samples per wavelength
-  spatial_res = max(spatial_res, [256, 512])  # but at least 256x512, for human visualization purposes.
-  spatial_res = SVector(spatial_res[1], spatial_res[2])
+  spatial_res_v = Int.(round.(fov / wavelength)) * 4  # 4 samples per wavelength
+  spatial_res_v = max(spatial_res_v, [256, 512])  # but at least 256x512, for human visualization purposes.
+  spatial_res = SVector(spatial_res_v[1], spatial_res_v[2])
   # End simulation when pulse reaches outside of FOV (for "worst" case i.e. longest path),
   # since setup is symmetric, computing one side is enough.
   time_top_trans_to_bot_corner = sqrt(fov[2]^2 + (fov[1]/2 + aperture_size/2)^2) / c
@@ -64,10 +66,18 @@ end
 
 # compute dependent parameters given global configuration
 function init(trans_delays, sim_params)
-  @unpack tx_frequency, transducer_pitch, spatial_res, temporal_res, end_simulation_time, fov, pulse_cycles, apodization_shape = sim_params
+  @unpack tx_frequency, transducer_pitch, aperture_radius, spatial_res, temporal_res, end_simulation_time, fov, pulse_cycles, apodization_shape = sim_params
   n_transducers = length(trans_delays)
   x_transducers = [transducer_pitch * itrans for itrans in 1:n_transducers]  # [m]
   x_transducers .+= fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
+  y_transducers = zeros(Float32, n_transducers)
+  if aperture_radius != Inf
+    x_transducers_centered = x_transducers .- mean(extrema(x_transducers))
+    @assert aperture_radius >= sum(extrema(x_transducers_centered))/2
+    y_transducers .= sqrt.( aperture_radius.^2 .- x_transducers_centered.^2)
+    y_transducers .-= minimum(y_transducers)
+  end
+  transducers = collect(zip(x_transducers, y_transducers))
   time_vec = collect(0.0f0:temporal_res:end_simulation_time)
   pulse_length = pulse_cycles / tx_frequency
   if apodization_shape == Rect
@@ -75,34 +85,34 @@ function init(trans_delays, sim_params)
   else
       apodization_vec = Float32[(sin(i*pi/(n_transducers-1)))^2 for i in 1:n_transducers]
   end
-  return x_transducers, time_vec, pulse_length, apodization_vec
+  return transducers, time_vec, pulse_length, apodization_vec
 end
 
 
 # simulate one time step of wave propagation
-function simulate_one_time_step!(image, t, trans_delays, x_transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, apodization_vec)
+function simulate_one_time_step!(image, t, trans_delays, transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, apodization_vec)
   # println("simulate_one_time_step")
   image_pitch = fov ./ spatial_res
   transducers_that_are_firing = findall(trans_delays .>= 0)
-  trans_coord = zeros(MVector{2, Float32})  # [m] space
-  pix_coord = zeros(MVector{2, Float32})  # [m] space
+  trans_coord_x::Float32 = 0  # [m] space
+  trans_coord_y::Float32 = 0  # [m] space
+  pix_coord_x::Float32 = 0  # [m] space
+  pix_coord_y::Float32 = 0  # [m] space
   one_over_c = 1.0f0 / c  # For computation speed improvement [s/m]
 
   for y in 1:spatial_res[2]
-    pix_coord[2] = y * image_pitch[2]  # [m]
+    pix_coord_y = y * image_pitch[2]  # [m]
     for x in 1:spatial_res[1]
-      pix_coord[1] = x * image_pitch[1]  # [m]
+      pix_coord_x = x * image_pitch[1]  # [m]
 
       # for transducers that will fire...
       amp = 0.0f0
       @inbounds for i_trans in transducers_that_are_firing
-        xt = x_transducers[i_trans]  # index
+        trans_coord_x, trans_coord_y = transducers[i_trans]  # index
         trans_delay = trans_delays[i_trans]
-        trans_coord[1] = xt
-        trans_coord[2] = 0.0f0
         # from pixel to transducer
-        dist_to_transducer = sqrt((trans_coord[1] - pix_coord[1])^2 +
-                                  (trans_coord[2] - pix_coord[2])^2)
+        dist_to_transducer = sqrt((trans_coord_x - pix_coord_x)^2 +
+                                  (trans_coord_y - pix_coord_y)^2)
         # wave is spreading spherically in space, energy spreading loss goes with r^2, amp with r
         # see: https://ccrma.stanford.edu/~jos/pasp/Spherical_Waves_Point_Source.html
         wave_spreading_factor = 1.0f0 / dist_to_transducer
@@ -124,14 +134,14 @@ end
 function wavesim(trans_delays, sim_params)
   @unpack tx_frequency, pulse_cycles, spatial_res = sim_params
   @unpack c, fov, pulse_shape_func = sim_params
-  x_transducers, tvec, pulse_length, apodization_vec = init(trans_delays, sim_params)
+  transducers, tvec, pulse_length, apodization_vec = init(trans_delays, sim_params)
 
   images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
 
   Threads.@threads for i_time in 1:length(tvec)
     t = tvec[i_time]
     image = view(images, :, :, i_time)
-    simulate_one_time_step!(image, t, trans_delays, x_transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, apodization_vec)
+    simulate_one_time_step!(image, t, trans_delays, transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, apodization_vec)
   end
 
   return images
