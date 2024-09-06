@@ -60,10 +60,4 @@ Know the transmit time delay everwhere in space:
 
 ### Parallelization
 
-The code supports multi-threading, make use of it by setting:
-
-`export JULIA_NUM_THREADS=4` (or whatever number of cores your machine has), before starting `julia`
-
-or start `julia` directly with:
-
-    JULIA_NUM_THREADS=`getconf _NPROCESSORS_ONLN` julia
+The code supports multi-threading, make use of it by starting Julia with multiple threads: `julia --threads 4 --project=.`
