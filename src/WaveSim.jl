@@ -3,6 +3,7 @@
 module WaveSim
 
 using Parameters
+using ProgressMeter
 using StaticArrays
 using Statistics
 
@@ -138,7 +139,7 @@ function wavesim(trans_delays, sim_params)
 
   images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
 
-  Threads.@threads for i_time in 1:length(tvec)
+  @showprogress Threads.@threads for i_time in 1:length(tvec)
     t = tvec[i_time]
     image = view(images, :, :, i_time)
     simulate_one_time_step!(image, t, trans_delays, transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, apodization_vec)
