@@ -7,6 +7,7 @@ const wave_propagation_filename = "wave_propagation.gif"
 const beam_energy_map_filename = "beam_energy_map.png"
 const transmit_time_map_filename = "transmit_time_map.png"
 const peak_to_peak_time_delta_map_filename = "peak_to_peak_time_delta_map.png"
+const line_scan_filename = "line_scan.png"
 
 function saveall(images, beam_energy_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params, output_path="images")
     mkpath(output_path)
@@ -79,6 +80,15 @@ function saveall(images, beam_energy_map, transmit_time_map, peak_to_peak_time_d
     Colorbar(fig[:, end+1], hm)
     resize_to_layout!(fig)
     save(joinpath(output_path, peak_to_peak_time_delta_map_filename), fig)
+
+    # Line scan at end depth
+    line_scan = beam_energy_map'[:, end]
+    fig = Figure()
+    ax = Axis(fig[1, 1], xlabel="Azimuth [m]", ylabel="Peak-to-peak amplitude [AU]", title="Linear scan - azimuth at $(fov[2]) [m] depth")
+    centers_x = range(extent[3], extent[4], length=length(line_scan))
+    scatterlines!(ax, centers_x, line_scan)
+    resize_to_layout!(fig)
+    save(joinpath(output_path, line_scan_filename), fig)
 
     return  # nothing
 end
