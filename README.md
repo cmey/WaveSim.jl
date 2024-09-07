@@ -33,15 +33,15 @@ sim_params = WaveSim.autores(sim_params, trans_delays)
 
 # Run the simulation.
 images = WaveSim.wavesim(trans_delays, sim_params);
-beam_energy_map, transmit_time_map = WaveSim.beam_energy_map_and_transmit_time_map(images, sim_params);
+beam_energy_map, transmit_time_map, peak_to_peak_time_delta_map = WaveSim.beam_energy_map_and_transmit_time_map(images, sim_params);
 
 # Display results.
 include("src/view.jl")
-imshowall(images, beam_energy_map, transmit_time_map, sim_params);
+imshowall(images, beam_energy_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params);
 
 # Save results.
 include("src/save.jl")
-saveall(images, beam_energy_map, transmit_time_map, sim_params, "images")
+saveall(images, beam_energy_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params, "images")
 ```
 
 Visualize the wave propagating through space, over time:

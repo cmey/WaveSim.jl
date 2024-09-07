@@ -6,8 +6,9 @@ include("bilog.jl")
 const wave_propagation_filename = "wave_propagation.gif"
 const beam_energy_map_filename = "beam_energy_map.png"
 const transmit_time_map_filename = "transmit_time_map.png"
+const peak_to_peak_time_delta_map_filename = "peak_to_peak_time_delta_map.png"
 
-function saveall(images, beam_energy_map, transmit_time_map, sim_params, output_path="images")
+function saveall(images, beam_energy_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params, output_path="images")
     mkpath(output_path)
 
     @unpack fov, dbrange, orientation = sim_params
@@ -24,6 +25,7 @@ function saveall(images, beam_energy_map, transmit_time_map, sim_params, output_
         images = mapslices(rotr90, images; dims=[1, 2])
         beam_energy_map = rotr90(beam_energy_map)
         transmit_time_map = rotr90(transmit_time_map)
+        peak_to_peak_time_delta_map = rotr90(peak_to_peak_time_delta_map)
     end
 
     # Wave propagation movie
@@ -66,6 +68,17 @@ function saveall(images, beam_energy_map, transmit_time_map, sim_params, output_
     Colorbar(fig[:, end+1], hm)
     resize_to_layout!(fig)
     save(joinpath(output_path, transmit_time_map_filename), fig)
+
+    # Peak-to-peak time-delta map
+    peak_to_peak_time_delta_map = peak_to_peak_time_delta_map';
+    fig = Figure()
+    ax = Axis(fig[1, 1], width=size(peak_to_peak_time_delta_map)[1], height=size(peak_to_peak_time_delta_map)[2], xlabel=xlabel, ylabel=ylabel, title="Peak-to-peak time-delta map [µs]")
+    centers_x = range(extent[1], extent[2], length=size(peak_to_peak_time_delta_map)[1])
+    centers_y = range(extent[3], extent[4], length=size(peak_to_peak_time_delta_map)[2])
+    hm = heatmap!(ax, centers_x, centers_y, peak_to_peak_time_delta_map .* 1e6)
+    Colorbar(fig[:, end+1], hm)
+    resize_to_layout!(fig)
+    save(joinpath(output_path, peak_to_peak_time_delta_map_filename), fig)
 
     return  # nothing
 end
