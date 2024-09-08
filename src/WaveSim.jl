@@ -47,7 +47,8 @@ export WaveSimParameters
   orientation::Symbol = :horizontal
 end
 
-# compute temporal and spatial resolutions fine enough to support the pulse
+# compute temporal and spatial resolutions fine enough to support the pulse,
+# and end of simulation time just long enough to reach the corner of the FOV.
 function autores(sim_params, trans_delays)
   @unpack tx_frequency, fov, aperture_size, c, pulse_cycles = sim_params
   # for our implementation, temporal resolution is way more important than spatial resolution
@@ -58,9 +59,9 @@ function autores(sim_params, trans_delays)
   spatial_res_v = Int.(round.(fov / wavelength)) * 4  # 4 samples per wavelength
   spatial_res_v = max(spatial_res_v, [256, 512])  # but at least 256x512, for human visualization purposes.
   spatial_res = SVector(spatial_res_v[1], spatial_res_v[2])
-  # End simulation when pulse reaches outside of FOV (for "worst" case i.e. longest path),
+  # End simulation when pulse reaches outside of FOV (for "worst" case i.e. longest path).
   # since setup is symmetric, computing one side is enough.
-  time_top_trans_to_bot_corner = sqrt(fov[2]^2 + (fov[1]/2 + aperture_size/2)^2) / c
+  time_top_trans_to_bot_corner = sqrt((fov[1]/2 + aperture_size/2)^2 + fov[2]^2) / c
   end_simulation_time = time_top_trans_to_bot_corner + maximum(trans_delays) + pulse_cycles * 1/tx_frequency
   WaveSimParameters(sim_params; temporal_res=temporal_res, spatial_res=spatial_res, end_simulation_time=end_simulation_time)
 end
