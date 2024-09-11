@@ -4,6 +4,7 @@ module WaveSim
 
 using Parameters
 using ProgressMeter
+using SpecialFunctions
 using StaticArrays
 using Statistics
 
@@ -38,14 +39,29 @@ export WaveSimParameters
   # Steering angle in azimuth.
   steer_angle::Float32 = 10.0  # [deg]
   # Shape of the transmit pulse.
-  pulse_shape_func::pulse_shape_func_T = phase -> cos(phase)
+  pulse_shape_func::pulse_shape_func_T = phase_over_pi -> cospi(phase_over_pi)
   # Shape of the transmit aperture apodization.
   apodization_shape::ApodizationShape = Rect
   # Display dynamic range.
   dbrange::Float32 = 40  # [dB]
   # Plot orientation: beam is horizontal or vertical.
   orientation::Symbol = :horizontal
+  # Directivity function of angle and frequency.
+  directivity_func::Function = function(θ, tx_frequency, c, transducer_pitch)
+    # account for mechanical crosstalk between elements
+    crosstalk_factor = 1.2f0  # assume 20% crosstalk factor
+    element_surface_diameter = transducer_pitch * crosstalk_factor
+    # from Umchid 2009 Directivity Pattern Measurement of Ultrasound Transducers
+    # https://www.thaiscience.info/Journals/Article/IABE/10892457.pdf
+    a = element_surface_diameter / 2
+    λ = c / tx_frequency
+    k = 2.0f0 * π / λ
+    ka_sin_θ = k * a * sin(θ) + 0.00001f0  # avoid division by zero, assuming θ ∈ [-π/2 to π/2]
+    h = convert(Float32, 2 * besselj1(ka_sin_θ) / ka_sin_θ)
+    return h
+  end
 end
+
 
 # compute temporal and spatial resolutions fine enough to support the pulse,
 # and end of simulation time just long enough to reach the corner of the FOV.
@@ -65,6 +81,7 @@ function autores(sim_params, trans_delays)
   end_simulation_time = time_top_trans_to_bot_corner + maximum(trans_delays) + pulse_cycles * 1/tx_frequency
   WaveSimParameters(sim_params; temporal_res=temporal_res, spatial_res=spatial_res, end_simulation_time=end_simulation_time)
 end
+
 
 # compute dependent parameters given global configuration
 function init(trans_delays, sim_params)
@@ -92,7 +109,7 @@ end
 
 
 # simulate one time step of wave propagation
-function simulate_one_time_step!(image, t, trans_delays, transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, apodization_vec)
+function simulate_one_time_step!(image, t, trans_delays, transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch)
   # println("simulate_one_time_step")
   image_pitch = fov ./ spatial_res
   transducers_that_are_firing = findall(trans_delays .>= 0)
@@ -117,13 +134,15 @@ function simulate_one_time_step!(image, t, trans_delays, transducers, pulse_leng
                                   (trans_coord_y - pix_coord_y)^2)
         # wave is spreading spherically in space, energy spreading loss goes with r^2, amp with r
         # see: https://ccrma.stanford.edu/~jos/pasp/Spherical_Waves_Point_Source.html
-        wave_spreading_factor = 1.0f0 / dist_to_transducer
+        wave_spreading_factor = 1.0f0 / dist_to_transducer  # no perf diff if put inside conditional
         time_to_transducer = dist_to_transducer * one_over_c
         time_to_reach = time_to_transducer + trans_delay
         # if the transducer wave has reached this pixel...
         if time_to_reach <= t <= time_to_reach + pulse_length
+          θ = atan(pix_coord_x - trans_coord_x, pix_coord_y - trans_coord_y)
+          directivity_factor = directivity_func(θ, tx_frequency, c, transducer_pitch)
           # wave interference
-          amp += apodization_vec[i_trans] * pulse_shape_func((t - time_to_reach) * tx_frequency * 2.0f0 * pi) * wave_spreading_factor
+          amp += apodization_vec[i_trans] * pulse_shape_func((t - time_to_reach) * tx_frequency * 2.0f0) * wave_spreading_factor * directivity_factor
         end
       end
       image[x,y] = amp  # write back to memory only once per pixel (precompute stack variable amp for all transducers)
@@ -134,8 +153,7 @@ end
 
 # run the simulation time steps
 function wavesim(trans_delays, sim_params)
-  @unpack tx_frequency, pulse_cycles, spatial_res = sim_params
-  @unpack c, fov, pulse_shape_func = sim_params
+  @unpack tx_frequency, pulse_cycles, spatial_res, c, fov, pulse_shape_func, directivity_func, transducer_pitch = sim_params
   transducers, tvec, pulse_length, apodization_vec = init(trans_delays, sim_params)
 
   images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
@@ -143,7 +161,7 @@ function wavesim(trans_delays, sim_params)
   @showprogress Threads.@threads for i_time in 1:length(tvec)
     t = tvec[i_time]
     image = view(images, :, :, i_time)
-    simulate_one_time_step!(image, t, trans_delays, transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, apodization_vec)
+    simulate_one_time_step!(image, t, trans_delays, transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch)
   end
 
   return images
