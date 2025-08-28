@@ -65,14 +65,14 @@ end
 
 # compute temporal and spatial resolutions fine enough to support the pulse,
 # and end of simulation time just long enough to reach the corner of the FOV.
-function autores(sim_params, trans_delays)
+function autores(sim_params, trans_delays; multiplier=1.0f0)
   @unpack tx_frequency, fov, aperture_size, c, pulse_cycles = sim_params
   # for our implementation, temporal resolution is way more important than spatial resolution
   # we're not interested in the detailed look of the pulse cycle, but rather
   # at each pixel, we need good temporal sampling for correct interference buildup.
-  temporal_res = 1/tx_frequency / 8  # 8 time points per cycle
+  temporal_res = 1/tx_frequency / 8 / multiplier  # 8 time points per cycle
   wavelength = c / tx_frequency
-  spatial_res_v = Int.(round.(fov / wavelength)) * 4  # 4 samples per wavelength
+  spatial_res_v = Int.(round.(fov / wavelength)) * 4 * multiplier # 4 samples per wavelength
   spatial_res_v = max(spatial_res_v, [256, 512])  # but at least 256x512, for human visualization purposes.
   spatial_res = SVector(spatial_res_v[1], spatial_res_v[2])
   # End simulation when pulse reaches outside of FOV (for "worst" case i.e. longest path).
