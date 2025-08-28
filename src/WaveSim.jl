@@ -172,25 +172,28 @@ end
 function beam_energy_map_and_transmit_time_map(images, sim_params)
     @unpack temporal_res = sim_params
 
+    # integrated_energy_map = dropdims(sqrt.(mean(images.^2, dims=3)), dims=3)  # RMS
+    integrated_energy_map = dropdims(mean(abs.(images), dims=3), dims=3)  # MeanAbs
+
+    # peak to peak amplitude
     maxval, maxlinindices = findmax(images, dims=3)
     minval, minlinindices = findmin(images, dims=3)
+    peak_to_peak_map = dropdims(maxval .- minval, dims=3)
 
-    beam_energy_map = dropdims(maxval .- minval, dims=3)  # peak to peak amplitude
-
-    transmit_time_map = similar(beam_energy_map)
+    transmit_time_map = similar(peak_to_peak_map)
     for linind in eachindex(maxlinindices)
         x, y, t = Tuple(CartesianIndices(images)[maxlinindices[linind]])
         transmit_time_map[linind] = t * temporal_res
     end
 
-    peak_to_peak_time_delta_map = similar(beam_energy_map)
+    peak_to_peak_time_delta_map = similar(peak_to_peak_map)
     for linind in eachindex(maxlinindices)
         x, y, tmax = Tuple(CartesianIndices(images)[maxlinindices[linind]])
         x, y, tmin = Tuple(CartesianIndices(images)[minlinindices[linind]])
         peak_to_peak_time_delta_map[linind] = (tmax - tmin) * temporal_res
     end
 
-    return beam_energy_map, transmit_time_map, peak_to_peak_time_delta_map
+    return integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map
 end
 
 
