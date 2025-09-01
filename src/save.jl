@@ -53,7 +53,7 @@ function saveall(images, integrated_energy_map, peak_to_peak_map, transmit_time_
     ax = Axis(fig[1, 1], width=size(integrated_energy_map)[1], height=size(integrated_energy_map)[2], xlabel=xlabel, ylabel=ylabel, title="Time-integrated energy map [dB]\n$(conditions_string)")
     centers_x = range(extent[1], extent[2], length=size(integrated_energy_map)[1])
     centers_y = range(extent[3], extent[4], length=size(integrated_energy_map)[2])
-    hm = heatmap!(ax, centers_x, centers_y, bilog(integrated_energy_map, dbrange), colormap=:jet1)
+    hm = heatmap!(ax, centers_x, centers_y, normlog(integrated_energy_map, dbrange), colormap=:jet1)
     Colorbar(fig[:, end+1], hm)
     resize_to_layout!(fig)
     save(joinpath(output_path, make_filename(integrated_energy_map_filename, conditions_string)), fig)
@@ -64,7 +64,7 @@ function saveall(images, integrated_energy_map, peak_to_peak_map, transmit_time_
     ax = Axis(fig[1, 1], width=size(peak_to_peak_map)[1], height=size(peak_to_peak_map)[2], xlabel=xlabel, ylabel=ylabel, title="Peak-to-peak map [dB]\n$(conditions_string)")
     centers_x = range(extent[1], extent[2], length=size(peak_to_peak_map)[1])
     centers_y = range(extent[3], extent[4], length=size(peak_to_peak_map)[2])
-    hm = heatmap!(ax, centers_x, centers_y, bilog(peak_to_peak_map, dbrange), colormap=:jet1)
+    hm = heatmap!(ax, centers_x, centers_y, normlog(peak_to_peak_map, dbrange), colormap=:jet1)
     Colorbar(fig[:, end+1], hm)
     resize_to_layout!(fig)
     save(joinpath(output_path, make_filename(peak_to_peak_map_filename, conditions_string)), fig)
@@ -124,7 +124,7 @@ function saveall(images, integrated_energy_map, peak_to_peak_map, transmit_time_
     ax = Axis(fig[1, 1], width=size(peak_to_peak_map)[1], height=size(peak_to_peak_map)[2], xlabel=xlabel, ylabel=ylabel, title="Peak-to-peak map [dB]\n$(conditions_string)")
     centers_x = range(extent[1], extent[2], length=size(peak_to_peak_map)[1])
     centers_y = range(extent[3], extent[4], length=size(peak_to_peak_map)[2])
-    image = bilog(peak_to_peak_map, dbrange)
+    image = normlog(peak_to_peak_map, dbrange)
     for (x, y) in zip(x_arc, y_arc)
         image[round(Int, x), round(Int, y)] = dbrange  # mark the arc
     end
