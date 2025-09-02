@@ -36,8 +36,10 @@ export WaveSimParameters
   focus_depth::Float32 = 0.03  # [m]
   # Steering angle in azimuth.
   steer_angle::Float32 = 10.0  # [deg]
-  # Shape of the transmit pulse.
+  # Shape of the transmit pulse, same for all transducers, as a function (prefer over discreet waveform).
   pulse_shape_func::pulse_shape_func_T = phase -> cos(phase)
+  # Shape of the transmit pulse, discreet waveform, one waveform per transducer (if set, used instead of func).
+  pulse_shape_waveforms::Union{Matrix{Float32}, Nothing} = nothing
   # Shape of the transmit aperture apodization.
   apodization_shape::ApodizationShape = Rect
   # Display dynamic range.
@@ -90,7 +92,7 @@ end
 
 
 # simulate one time step of wave propagation
-function simulate_one_time_step!(image, t, trans_delays, transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, apodization_vec)
+function simulate_one_time_step!(image, t, trans_delays, transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, pulse_shape_waveforms, Δ_time, apodization_vec)
   # println("simulate_one_time_step")
   image_pitch = fov ./ spatial_res
   transducers_that_are_firing = findall(trans_delays .>= 0)
@@ -118,10 +120,17 @@ function simulate_one_time_step!(image, t, trans_delays, transducers, pulse_leng
         wave_spreading_factor = 1.0f0 / dist_to_transducer
         time_to_transducer = dist_to_transducer * one_over_c
         time_to_reach = time_to_transducer + trans_delay
+        τ = (t - time_to_reach)
         # if the transducer wave has reached this pixel...
-        if time_to_reach <= t <= time_to_reach + pulse_length
+        if 0 <= τ <= pulse_length
           # wave interference
-          amp += apodization_vec[i_trans] * pulse_shape_func((t - time_to_reach) * tx_frequency * 2.0f0 * pi) * wave_spreading_factor
+          if pulse_shape_waveforms === nothing
+            pulse_amp = pulse_shape_func(τ * tx_frequency * 2.0f0 * pi)
+          else
+            waveform_n = round(t * Δ_time)
+            pulse_amp = pulse_shape_waveforms[i_trans, waveform_n]
+          end
+          amp += pulse_amp * wave_spreading_factor * apodization_vec[i_trans]
         end
       end
       image[x,y] = amp  # write back to memory only once per pixel (precompute stack variable amp for all transducers)
@@ -134,6 +143,9 @@ end
 function wavesim(trans_delays, sim_params)
   @unpack tx_frequency, pulse_cycles, spatial_res = sim_params
   @unpack c, fov, pulse_shape_func = sim_params
+  @unpack pulse_shape_waveforms, temporal_res = sim_params
+  Δ_time = temporal_res
+
   transducers, tvec, pulse_length, apodization_vec = init(trans_delays, sim_params)
 
   images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
@@ -141,7 +153,7 @@ function wavesim(trans_delays, sim_params)
   Threads.@threads for i_time in 1:length(tvec)
     t = tvec[i_time]
     image = view(images, :, :, i_time)
-    simulate_one_time_step!(image, t, trans_delays, transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, apodization_vec)
+    simulate_one_time_step!(image, t, trans_delays, transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, pulse_shape_waveforms, Δ_time, apodization_vec)
   end
 
   return images
