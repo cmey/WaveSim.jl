@@ -48,13 +48,22 @@ Visualize the wave propagating through space, over time:
 
 ![wave propagation animation](images/wave_propagation.gif)
 
-Get a spatial heatmap of where the energy went:
+Get a spatial heatmap of where the time-integrated energy went:
 
-![beam energy map](images/beam_energy_map.png)
+![integrated energy map](images/integrated_energy_map.png)
 
-Know the transmit time delay everwhere in space:
+Get a spatial heatmap of the peak-to-peak amplitude:
 
-![beam energy map](images/transmit_time_map.png)
+![peak-to-peak map](images/peak_to_peak_map.png)
+
+Get a spatial heatmap of the transmit time delay to peak amplitude:
+
+![transmit time map](images/transmit_time_map.png)
+
+Get a spatial heatmap of the peak-to-peak time delta (can indicate where the peak-to-peak estimations are reasonable):
+
+![peak-to-peak time delta map](images/peak_to_peak_time_delta_map.png)
+
 
 ## Tips
 
