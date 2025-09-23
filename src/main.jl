@@ -19,7 +19,7 @@ function main()
   trans_delays = WaveSim.delays_from_focus_and_steer(sim_params)
 
   # Compute optimized "best" spatial and temporal parameters.
-  sim_params = WaveSim.autores(sim_params, trans_delays)
+  sim_params = WaveSim.autores(sim_params, trans_delays, multiplier=0.5)
 
   # Run the simulation.
   images = WaveSim.wavesim(trans_delays, sim_params)
