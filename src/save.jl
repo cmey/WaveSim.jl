@@ -15,17 +15,17 @@ const line_scan_filename = "line_scan.png"
 const arc_scan_filename = "arc_scan.png"
 const peak_to_peak_map_with_arc_filename = "peak_to_peak_map_with_arc.png"
 
+function make_filename(original_filename, conditions_string)
+    if isempty(conditions_string)
+        return original_filename
+    else
+        return "$(conditions_string)_$(original_filename)"
+    end
+end
+
 function saveall(images, integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params, output_path="images", conditions_string="")
     println("Saving simulation results to: ", output_path)
     mkpath(output_path)
-
-    function make_filename(original_filename, conditions_string)
-        if isempty(conditions_string)
-            return original_filename
-        else
-            return "$(conditions_string)_$(original_filename)"
-        end
-    end
 
     # save(joinpath(output_path, saved_data_filename), "images", images; compress=true)
 

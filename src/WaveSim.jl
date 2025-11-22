@@ -34,7 +34,8 @@ export WaveSimParameters
   aperture_size::Float32 = 0.02  # [m]
   # Radius of curvature of the aperture. Inf means a flat aperture.
   aperture_radius = Inf  # [m]
-  # Distance from transducer to focus point, Inf means plane wave.
+  # Distance from transducer to focus point, Inf and -Inf mean plane wave.
+  # Positive values mean focusing, negative values mean diverging.
   focus_depth::Float32 = 0.03  # [m]
   # Steering angle in azimuth.
   steer_angle::Float32 = 10.0  # [deg]
@@ -134,6 +135,7 @@ function simulate_one_time_step!(image, t, trans_delays, transducers, pulse_leng
                                   (trans_coord_y - pix_coord_y)^2)
         # wave is spreading spherically in space, energy spreading loss goes with r^2, amp with r
         # see: https://ccrma.stanford.edu/~jos/pasp/Spherical_Waves_Point_Source.html
+        # TODO: currently often > 1, but should be only attenuative.
         wave_spreading_factor = 1.0f0 / dist_to_transducer  # no perf diff if put inside conditional
         time_to_transducer = dist_to_transducer * one_over_c
         time_to_reach = time_to_transducer + trans_delay
@@ -208,15 +210,16 @@ function delays_from_focus_and_steer(sim_params)
     num_elements = round(Int, aperture_size / transducer_pitch)
 
     x_transducers = [transducer_pitch * ielem for ielem in 1:num_elements]  # [m]
-    x_transducers .+= fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
-
-    trans_delays = zeros(Float32, num_elements)
+    x_transducers .+= -mean(extrema(x_transducers))  # center around 0 in x
 
     # Focus
-    focus_coord = [0.0, focus_depth]
-    if Inf == focus_depth
-        # Focus at infinity is considered planewave. Zero delay is fine.
-    else
+    if focus_depth == Inf || focus_depth == -Inf
+        # Focus at infinity is considered planewave.
+        first_firing_element = -steer_angle < 0 ? x_transducers[1] : x_transducers[end]
+        sin_a = abs(sind(steer_angle))  # sind : sine of degrees
+        trans_delays = Float32[abs(element_location - first_firing_element) * sin_a / c for element_location in x_transducers]
+    elseif focus_depth > 0
+        # Focused beam.
         # Define variables as in the reference paper (see above).
         l0 = focus_depth
         A = aperture_size
@@ -229,21 +232,29 @@ function delays_from_focus_and_steer(sim_params)
         first_part = sqrt(l02 + (Ae / 2) ^ 2)  # longest dist from focus to elem (i.e. to the edge)
 
         # for transducers that will fire...
+        trans_delays = zeros(Float32, num_elements)
         for (i_elem, x_elem) = enumerate(x_transducers)
             k = i_elem
             second_part = sqrt(l02 + (Ae * abs(n - 2k + 1) / (2n - 1)) ^ 2)  # offset_dist
             trans_delays[i_elem] = (first_part - second_part) / v1
         end
-    end
 
-    # Steer
-    # Define variables as in the reference paper (see above).
-    θ = deg2rad(steer_angle)
-    d = transducer_pitch
-    # n * d = x_elem
-    # for transducers that will fire...
-    for (i_elem, x_elem) = enumerate(x_transducers)
-        trans_delays[i_elem] += x_elem / c * sin(θ)
+        # Separately add steering
+        # Define variables as in the reference paper (see above).
+        θ = deg2rad(steer_angle)
+        d = transducer_pitch
+        # n * d = x_elem
+        # for transducers that will fire...
+        for (i_elem, x_elem) = enumerate(x_transducers)
+            trans_delays[i_elem] += x_elem / c * sin(θ)
+        end
+    elseif focus_depth < 0
+        # Diverging beam.
+        virtual_source_x = -sind(steer_angle) * abs(focus_depth)
+        virtual_source_y = -cosd(steer_angle) * abs(focus_depth)
+        trans_delays = Float32[sqrt((element_location - virtual_source_x)^2 + virtual_source_y^2) / c for element_location in x_transducers]
+    else
+        error("Invalid focus depth value 0")
     end
 
     # Causal delays
