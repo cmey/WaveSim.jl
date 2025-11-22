@@ -1,5 +1,5 @@
 # WaveSim.jl, wave propagation simulator.
-# Christophe Meyer, 2016-2024
+# Christophe Meyer, 2016-2025
 module WaveSim
 
 using Parameters
@@ -13,7 +13,7 @@ export WaveSimParameters
 @enum ApodizationShape Rect Hann
 
 # Configuration
-@with_kw struct WaveSimParameters{pulse_shape_func_T}
+@with_kw mutable struct WaveSimParameters{pulse_shape_func_T}
   # Transmit center frequency.
   tx_frequency::Float32 = 3_000_000  # [Hz]
   # Length of the transmit pulse.
