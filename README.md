@@ -1,6 +1,6 @@
 # Wave propagation simulator
 
-Simulates the propagation of waves from multiple transmitting elements.
+Simulates the interference and propagation of waves from multiple transmitting elements.
 
 ## Package status
 
@@ -8,7 +8,13 @@ Simulates the propagation of waves from multiple transmitting elements.
 
 ## Installation
 
-Until this package gets registered, open the Julia environment from inside the package folder:
+The package is registered, so one can simply:
+```
+using Pkg
+Pkg.add("WaveSim")
+```
+
+For development, open the Julia environment from inside this package folder. It will re-precompile an up-to-date version with any local change:
 ```
 julia --project=.
 ```
