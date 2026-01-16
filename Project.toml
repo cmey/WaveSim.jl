@@ -1,11 +1,13 @@
 name = "WaveSim"
-authors = ["Christophe Meyer <christophe.meyer.pro@gmail.com>"]
 uuid = "357e0438-a8f0-40ee-b2b7-31745160e092"
 version = "0.1.1"
+authors = ["Christophe Meyer <christophe.meyer.pro@gmail.com>"]
 
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
+ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 ImageView = "86fae568-95e7-573e-a6b2-d8a6b900c9ef"
 Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
@@ -16,9 +18,10 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
-julia = "1.11"
 BenchmarkTools = "1.6.0"
 CairoMakie = "0.15.6"
+ColorSchemes = "3.31.0"
+FFTW = "1.10.0"
 ImageView = "0.13.0"
 Interpolations = "0.16.2"
 Makie = "0.24.6"
@@ -27,3 +30,4 @@ ProgressMeter = "1.11.0"
 SpecialFunctions = "2.5.1"
 StaticArrays = "1.9.15"
 Statistics = "1.11.1"
+julia = "1.12"

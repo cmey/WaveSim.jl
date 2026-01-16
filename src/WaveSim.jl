@@ -1,5 +1,5 @@
 # WaveSim.jl, wave propagation simulator.
-# Christophe Meyer, 2016-2025
+# Christophe Meyer, 2016-2026
 module WaveSim
 
 using Parameters
@@ -13,7 +13,7 @@ export WaveSimParameters
 @enum ApodizationShape Rect Hann
 
 # Configuration
-@with_kw mutable struct WaveSimParameters{pulse_shape_func_T}
+@with_kw mutable struct WaveSimParameters{pulse_shape_func_T, directivity_func_T}
   # Transmit center frequency.
   tx_frequency::Float32 = 3_000_000  # [Hz]
   # Length of the transmit pulse.
@@ -48,27 +48,39 @@ export WaveSimParameters
   # Plot orientation: beam is horizontal or vertical.
   orientation::Symbol = :horizontal
   # Directivity function of angle and frequency.
-  directivity_func::Function = function(θ, tx_frequency, c, transducer_pitch)
-    # account for mechanical crosstalk between elements
-    crosstalk_factor = 1.2f0  # assume 20% crosstalk factor
-    element_surface_diameter = transducer_pitch * crosstalk_factor
-    # from Umchid 2009 Directivity Pattern Measurement of Ultrasound Transducers
-    # https://www.thaiscience.info/Journals/Article/IABE/10892457.pdf
-    a = element_surface_diameter / 2
-    λ = c / tx_frequency
-    k = 2.0f0 * π / λ
-    ka_sin_θ = k * a * sin(θ) + 0.00001f0  # avoid division by zero, assuming θ ∈ [-π/2 to π/2]
-    h = convert(Float32, 2 * besselj1(ka_sin_θ) / ka_sin_θ)
-    return h
-  end
+  directivity_func::directivity_func_T = default_directivity
 end
 
+# Concrete default directivity function with fully-typed signature to help inference
+function default_directivity(sinθ::Float32, tx_frequency::Float32, c::Float32, transducer_pitch::Float32)::Float32
+  # Account for mechanical crosstalk between elements
+  crosstalk_factor = 1.2f0  # Assume 20% crosstalk factor
+  # From Umchid 2009 Directivity Pattern Measurement of Ultrasound Transducers:
+  # https://www.thaiscience.info/Journals/Article/IABE/10892457.pdf
+  element_surface_diameter = transducer_pitch * crosstalk_factor
+  a = element_surface_diameter / 2.0f0
+  λ = c / tx_frequency
+  k = 2.0f0 * π / λ
+  ka_sin_θ = k * a * sinθ
+  if abs(ka_sin_θ) < 1f-5
+    return 1.0f0
+  end
+  return convert(Float32, 2.0f0 * besselj1_approx(ka_sin_θ) / ka_sin_θ)
+  # return convert(Float32, 2.0f0 * besselj1(ka_sin_θ) / ka_sin_θ)
+end
 
-# compute temporal and spatial resolutions fine enough to support the pulse,
+# CUDA-friendly polynomial approximation for besselj1(x) for Float32 inputs
+@inline function besselj1_approx(x::Float32)
+  xk = x
+  x2 = xk * xk
+  return xk * (0.5f0 - x2 * (1/16f0 - x2 * (1/384f0)))
+end
+
+# Compute temporal and spatial resolutions fine enough to support the pulse,
 # and end of simulation time just long enough to reach the corner of the FOV.
 function autores(sim_params, trans_delays; multiplier=1.0f0)
   @unpack tx_frequency, fov, aperture_size, c, pulse_cycles = sim_params
-  # for our implementation, temporal resolution is way more important than spatial resolution
+  # For our implementation, temporal resolution is way more important than spatial resolution
   # we're not interested in the detailed look of the pulse cycle, but rather
   # at each pixel, we need good temporal sampling for correct interference buildup.
   temporal_res = 1/tx_frequency / 8 / multiplier  # 8 time points per cycle
@@ -97,7 +109,7 @@ function init(trans_delays, sim_params)
     y_transducers .= sqrt.( aperture_radius.^2 .- x_transducers_centered.^2)
     y_transducers .-= minimum(y_transducers)
   end
-  transducers = collect(zip(x_transducers, y_transducers))
+  transducers = [SVector{2,Float32}(x_transducers[i], y_transducers[i]) for i in 1:length(x_transducers)]
   time_vec = collect(0.0f0:temporal_res:end_simulation_time)
   pulse_length = pulse_cycles / tx_frequency
   if apodization_shape == Rect
@@ -105,49 +117,45 @@ function init(trans_delays, sim_params)
   else
       apodization_vec = Float32[(sin(i*pi/(n_transducers-1)))^2 for i in 1:n_transducers]
   end
-  return transducers, time_vec, pulse_length, apodization_vec
+  # Precompute pixel coordinates for the image grid to avoid recomputing every time step
+  dx = Float32(fov[1]) / Float32(spatial_res[1])
+  dz = Float32(fov[2]) / Float32(spatial_res[2])
+  pix_coord_xs = Float32[i * dx for i in 1:spatial_res[1]]
+  pix_coord_ys = Float32[j * dz for j in 1:spatial_res[2]]
+
+  # Indices of transducers that will ever fire (non-negative delays)
+  transducers_that_are_firing = findall(trans_delays .>= 0)
+
+  return transducers, time_vec, pulse_length, apodization_vec, pix_coord_xs, pix_coord_ys, transducers_that_are_firing
 end
 
 
 # simulate one time step of wave propagation
-function simulate_one_time_step!(image, t, trans_delays, transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch)
-  # println("simulate_one_time_step")
-  image_pitch = fov ./ spatial_res
-  transducers_that_are_firing = findall(trans_delays .>= 0)
-  trans_coord_x::Float32 = 0  # [m] space
-  trans_coord_y::Float32 = 0  # [m] space
-  pix_coord_x::Float32 = 0  # [m] space
-  pix_coord_y::Float32 = 0  # [m] space
+function simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_frequency, c, spatial_res, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch, pix_coord_xs, pix_coord_ys, transducers, transducers_that_are_firing)
   one_over_c = 1.0f0 / c  # For computation speed improvement [s/m]
 
-  for y in 1:spatial_res[2]
-    pix_coord_y = y * image_pitch[2]  # [m]
-    for x in 1:spatial_res[1]
-      pix_coord_x = x * image_pitch[1]  # [m]
-
-      # for transducers that will fire...
+  @inbounds for y in 1:spatial_res[2]
+    pix_coord_y = pix_coord_ys[y]
+    @inbounds for x in 1:spatial_res[1]
+      pix_coord_x = pix_coord_xs[x]
       amp = 0.0f0
-      @inbounds for i_trans in transducers_that_are_firing
-        trans_coord_x, trans_coord_y = transducers[i_trans]  # index
+      @simd for i_trans in transducers_that_are_firing
+        t_coord = transducers[i_trans]
         trans_delay = trans_delays[i_trans]
-        # from pixel to transducer
-        dist_to_transducer = sqrt((trans_coord_x - pix_coord_x)^2 +
-                                  (trans_coord_y - pix_coord_y)^2)
-        # wave is spreading spherically in space, energy spreading loss goes with r^2, amp with r
-        # see: https://ccrma.stanford.edu/~jos/pasp/Spherical_Waves_Point_Source.html
-        # TODO: currently often > 1, but should be only attenuative.
-        wave_spreading_factor = 1.0f0 / dist_to_transducer  # no perf diff if put inside conditional
-        time_to_transducer = dist_to_transducer * one_over_c
+        dx = pix_coord_x - t_coord[1]
+        dy = pix_coord_y - t_coord[2]
+        dist_to_transducer_not_zero = max(sqrt(dx*dx + dy*dy), 1.0f-6)
+        wave_spreading_factor = 1.0f0 / dist_to_transducer_not_zero
+        time_to_transducer = dist_to_transducer_not_zero * one_over_c
         time_to_reach = time_to_transducer + trans_delay
-        # if the transducer wave has reached this pixel...
         if time_to_reach <= t <= time_to_reach + pulse_length
-          θ = atan(pix_coord_x - trans_coord_x, pix_coord_y - trans_coord_y)
-          directivity_factor = directivity_func(θ, tx_frequency, c, transducer_pitch)
-          # wave interference
+          # compute sin(theta) = opposite / hypotenuse where opposite = horizontal difference
+          sinθ = dx / dist_to_transducer_not_zero
+          directivity_factor = directivity_func(sinθ, tx_frequency, c, transducer_pitch)
           amp += apodization_vec[i_trans] * pulse_shape_func((t - time_to_reach) * tx_frequency * 2.0f0) * wave_spreading_factor * directivity_factor
         end
       end
-      image[x,y] = amp  # write back to memory only once per pixel (precompute stack variable amp for all transducers)
+      image[x,y] = amp
     end
   end
 end
@@ -156,14 +164,13 @@ end
 # run the simulation time steps
 function wavesim(trans_delays, sim_params)
   @unpack tx_frequency, pulse_cycles, spatial_res, c, fov, pulse_shape_func, directivity_func, transducer_pitch = sim_params
-  transducers, tvec, pulse_length, apodization_vec = init(trans_delays, sim_params)
-
+  transducers, tvec, pulse_length, apodization_vec, pix_coord_xs, pix_coord_ys, transducers_that_are_firing = init(trans_delays, sim_params)
   images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
 
   @showprogress Threads.@threads for i_time in 1:length(tvec)
     t = tvec[i_time]
     image = view(images, :, :, i_time)
-    simulate_one_time_step!(image, t, trans_delays, transducers, pulse_length, tx_frequency, c, spatial_res, fov, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch)
+    simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_frequency, c, spatial_res, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch, pix_coord_xs, pix_coord_ys, transducers, transducers_that_are_firing)
   end
 
   return images
