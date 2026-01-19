@@ -141,15 +141,21 @@ function saveall(images, integrated_energy_map, peak_to_peak_map, transmit_time_
     ax = Axis(fig[1, 1], width=size(wave_field_images)[1], height=size(wave_field_images)[2], xlabel=xlabel, ylabel=ylabel, title="Wave amplitude [dB]\n$(conditions_string)")
     centers_x = range(extent[1], extent[2], length=size(wave_field_images)[1])
     centers_y = range(extent[3], extent[4], length=size(wave_field_images)[2])
-    hm = heatmap!(ax, centers_x, centers_y, wave_field_images[:, :, 1]; colormap=:RdBu_11, colorrange=(vmin, vmax))
+    
+    # Use an Observable for the data to update the plot efficiently
+    data_obs = Observable(wave_field_images[:, :, 1])
+    hm = heatmap!(ax, centers_x, centers_y, data_obs; colormap=:RdBu_11, colorrange=(vmin, vmax))
     Colorbar(fig[:, end+1], hm)
     resize_to_layout!(fig)
     framerate = 30  # [fps]
     duration = 3  # [s]
     time_indices = round.(Int, range(1, size(wave_field_images)[3], length=framerate*duration))
     record(fig, joinpath(output_path, make_filename(wave_propagation_filename, conditions_string)), time_indices; framerate=framerate) do time_index
-        heatmap!(ax, centers_x, centers_y, wave_field_images[:, :, time_index]; colormap=:RdBu_11, colorrange=(vmin, vmax))
-        println("Saving simulation frame ", time_index, "/", size(wave_field_images)[3], " ")
+        data_obs[] = wave_field_images[:, :, time_index]
+        # Skip printing every frame for 1000+ frames to avoid console overhead
+        if time_index % 10 == 0 || time_index == time_indices[end]
+            println("Saving simulation frame ", time_index, "/", size(wave_field_images)[3])
+        end
     end
 
     return  # nothing
