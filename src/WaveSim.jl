@@ -103,9 +103,10 @@ function init(trans_delays, sim_params)
   x_transducers = [transducer_pitch * itrans for itrans in 1:n_transducers]  # [m]
   x_transducers .+= fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
   y_transducers = zeros(Float32, n_transducers)
-  if aperture_radius != Inf
+  if isfinite(aperture_radius)
     x_transducers_centered = x_transducers .- mean(extrema(x_transducers))
-    @assert aperture_radius >= sum(extrema(x_transducers_centered))/2
+    x_half_width = maximum(abs.(x_transducers_centered))
+    @assert aperture_radius >= x_half_width + 0.00001f0 "Aperture radius too small for given aperture size"
     y_transducers .= sqrt.( aperture_radius.^2 .- x_transducers_centered.^2)
     y_transducers .-= minimum(y_transducers)
   end
