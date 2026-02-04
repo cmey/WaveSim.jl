@@ -1,6 +1,6 @@
 name = "WaveSim"
 uuid = "357e0438-a8f0-40ee-b2b7-31745160e092"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Christophe Meyer <christophe.meyer.pro@gmail.com>"]
 
 [deps]
