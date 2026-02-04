@@ -19,6 +19,8 @@ For development, open the Julia environment from inside this package folder. It 
 julia --project=.
 ```
 
+For information about releasing new versions, see [RELEASING.md](RELEASING.md).
+
 ## Usage
 
 ```

@@ -49,9 +49,10 @@ You can register a new version using one of these methods:
 ### 4. TagBot Creates the Release
 
 Once the registry PR is merged:
-1. JuliaTagBot will comment on an issue in this repository
-2. This triggers the TagBot GitHub Actions workflow
-3. TagBot creates:
+1. The Julia General registry notifies this repository
+2. JuliaTagBot creates a comment on a dedicated issue in this repository
+3. This comment triggers the TagBot GitHub Actions workflow (via the `issue_comment` event)
+4. TagBot creates:
    - A git tag (e.g., `v0.1.3`)
    - A GitHub release with auto-generated changelog
 
