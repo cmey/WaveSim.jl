@@ -40,7 +40,7 @@ export WaveSimParameters
   # Steering angle in azimuth.
   steer_angle::Float32 = 10.0  # [deg]
   # Shape of the transmit pulse.
-  pulse_shape_func::pulse_shape_func_T = phase_over_pi -> cospi(phase_over_pi)
+  pulse_shape_func::pulse_shape_func_T = phase_divided_by_pi -> cospi(phase_divided_by_pi)
   # Shape of the transmit aperture apodization.
   apodization_shape::ApodizationShape = Rect
   # Display dynamic range.
@@ -78,7 +78,7 @@ end
 
 # Compute temporal and spatial resolutions fine enough to support the pulse,
 # and end of simulation time just long enough to reach the corner of the FOV.
-function autores(sim_params, trans_delays; multiplier=1.0f0)
+function autores(sim_params, trans_delays; multiplier=1.0f0, min_spatial_res=(256, 512))
   @unpack tx_frequency, fov, aperture_size, c, pulse_cycles = sim_params
   # For our implementation, temporal resolution is way more important than spatial resolution
   # we're not interested in the detailed look of the pulse cycle, but rather
@@ -86,7 +86,7 @@ function autores(sim_params, trans_delays; multiplier=1.0f0)
   temporal_res = 1/tx_frequency / 8 / multiplier  # 8 time points per cycle
   wavelength = c / tx_frequency
   spatial_res_v = Int.(round.(fov / wavelength)) * 4 * multiplier # 4 samples per wavelength
-  spatial_res_v = max(spatial_res_v, [256, 512])  # but at least 256x512, for human visualization purposes.
+  spatial_res_v = max.(spatial_res_v, min_spatial_res)  # but at least min_spatial_res, for human visualization purposes.
   spatial_res = SVector(spatial_res_v[1], spatial_res_v[2])
   # End simulation when pulse reaches outside of FOV (for "worst" case i.e. longest path).
   # since setup is symmetric, computing one side is enough.
@@ -153,6 +153,7 @@ function simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_freque
           # compute sin(theta) = opposite / hypotenuse where opposite = horizontal difference
           sinθ = dx / dist_to_transducer_not_zero
           directivity_factor = directivity_func(sinθ, tx_frequency, c, transducer_pitch)
+          # The phase is in radians (the π factor in the more common notation "2*π*f" is inside pulse_shape_func's cospi)
           amp += apodization_vec[i_trans] * pulse_shape_func((t - time_to_reach) * tx_frequency * 2.0f0) * wave_spreading_factor * directivity_factor
         end
       end
