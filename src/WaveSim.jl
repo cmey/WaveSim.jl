@@ -47,6 +47,8 @@ export WaveSimParameters
   dbrange::Float32 = 40  # [dB]
   # Plot orientation: beam is horizontal or vertical.
   orientation::Symbol = :horizontal
+  # Attenuation coefficient in dB/cm/MHz.
+  attenuation_coefficient::Float32 = 0.0  # [dB/cm/MHz]
   # Directivity function of angle and frequency.
   directivity_func::directivity_func_T = default_directivity
 end
@@ -132,8 +134,13 @@ end
 
 
 # simulate one time step of wave propagation
-function simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_frequency, c, spatial_res, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch, pix_coord_xs, pix_coord_ys, transducers, transducers_that_are_firing)
+function simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_frequency, c, spatial_res, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch, attenuation_coefficient, pix_coord_xs, pix_coord_ys, transducers, transducers_that_are_firing)
   one_over_c = 1.0f0 / c  # For computation speed improvement [s/m]
+
+  # Attenuation [dB] = α [dB/cm/MHz] * distance [cm] * frequency [MHz]
+  # For linear amplitude reduction (A = A0 * 10^(-dB/20)):
+  # amplitude_factor = 10 ^ (- (α * dist_cm * freq_MHz) / 20)
+  α_factor = - (attenuation_coefficient * tx_frequency / 1e6) / 20.0
 
   @inbounds for y in 1:spatial_res[2]
     pix_coord_y = pix_coord_ys[y]
@@ -153,8 +160,17 @@ function simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_freque
           # compute sin(theta) = opposite / hypotenuse where opposite = horizontal difference
           sinθ = dx / dist_to_transducer_not_zero
           directivity_factor = directivity_func(sinθ, tx_frequency, c, transducer_pitch)
+
+          # Compute attenuation factor if α > 0
+          if attenuation_coefficient > 0.0
+            dist_cm = dist_to_transducer_not_zero * 100.0
+            attenuation_factor = 10.0 ^ (α_factor * dist_cm)
+          else
+            attenuation_factor = 1.0
+          end
+
           # The phase is in radians (the π factor in the more common notation "2*π*f" is inside pulse_shape_func's cospi)
-          amp += apodization_vec[i_trans] * pulse_shape_func((t - time_to_reach) * tx_frequency * 2.0f0) * wave_spreading_factor * directivity_factor
+          amp += apodization_vec[i_trans] * pulse_shape_func((t - time_to_reach) * tx_frequency * 2.0f0) * wave_spreading_factor * directivity_factor * attenuation_factor
         end
       end
       image[x,y] = amp
@@ -165,14 +181,14 @@ end
 
 # run the simulation time steps
 function wavesim(trans_delays, sim_params)
-  @unpack tx_frequency, pulse_cycles, spatial_res, c, fov, pulse_shape_func, directivity_func, transducer_pitch = sim_params
+  @unpack tx_frequency, pulse_cycles, spatial_res, c, fov, pulse_shape_func, directivity_func, transducer_pitch, attenuation_coefficient = sim_params
   transducers, tvec, pulse_length, apodization_vec, pix_coord_xs, pix_coord_ys, transducers_that_are_firing = init(trans_delays, sim_params)
   images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
 
   @showprogress Threads.@threads for i_time in 1:length(tvec)
     t = tvec[i_time]
     image = view(images, :, :, i_time)
-    simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_frequency, c, spatial_res, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch, pix_coord_xs, pix_coord_ys, transducers, transducers_that_are_firing)
+    simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_frequency, c, spatial_res, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch, attenuation_coefficient, pix_coord_xs, pix_coord_ys, transducers, transducers_that_are_firing)
   end
 
   return images
