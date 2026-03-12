@@ -5,16 +5,6 @@ using Makie.Colors
 using Parameters
 include("bilog.jl")
 
-const saved_data_filename = "saved_data.jld"
-const wave_propagation_filename = "wave_propagation.gif"
-const integrated_energy_map_filename = "integrated_energy_map.png"
-const peak_to_peak_map_filename = "peak_to_peak_map.png"
-const transmit_time_map_filename = "transmit_time_map.png"
-const peak_to_peak_time_delta_map_filename = "peak_to_peak_time_delta_map.png"
-const line_scan_filename = "line_scan.png"
-const arc_scan_filename = "arc_scan.png"
-const peak_to_peak_map_with_arc_filename = "peak_to_peak_map_with_arc.png"
-
 function make_filename(original_filename, conditions_string)
     if isempty(conditions_string)
         return original_filename
@@ -27,7 +17,7 @@ function saveall(images, windowed_energy_map, integrated_energy_map, peak_to_pea
     println("Saving simulation results to: ", output_path)
     mkpath(output_path)
 
-    # save(joinpath(output_path, saved_data_filename), "images", images; compress=true)
+    # save(joinpath(output_path, make_filename("saved_data.jld", conditions_string)), "images", images; compress=true)
 
     @unpack tx_frequency, pulse_cycles, fov, dbrange, orientation = sim_params
 
@@ -68,7 +58,7 @@ function saveall(images, windowed_energy_map, integrated_energy_map, peak_to_pea
     hm = heatmap!(ax, centers_x, centers_y, normlog(integrated_energy_map, dbrange), colormap=:jet1)
     Colorbar(fig[:, end+1], hm)
     resize_to_layout!(fig)
-    save(joinpath(output_path, make_filename(integrated_energy_map_filename, conditions_string)), fig)
+    save(joinpath(output_path, make_filename("integrated_energy_map.png", conditions_string)), fig)
 
     # Peak-to-peak map
     peak_to_peak_map = peak_to_peak_map';
@@ -79,7 +69,7 @@ function saveall(images, windowed_energy_map, integrated_energy_map, peak_to_pea
     hm = heatmap!(ax, centers_x, centers_y, normlog(peak_to_peak_map, dbrange), colormap=:jet1)
     Colorbar(fig[:, end+1], hm)
     resize_to_layout!(fig)
-    save(joinpath(output_path, make_filename(peak_to_peak_map_filename, conditions_string)), fig)
+    save(joinpath(output_path, make_filename("peak_to_peak_map.png", conditions_string)), fig)
 
     # Transmit time map
     transmit_time_map = transmit_time_map';
@@ -90,7 +80,7 @@ function saveall(images, windowed_energy_map, integrated_energy_map, peak_to_pea
     hm = heatmap!(ax, centers_x, centers_y, transmit_time_map .* 1e6, colormap=:jet1)
     Colorbar(fig[:, end+1], hm)
     resize_to_layout!(fig)
-    save(joinpath(output_path, make_filename(transmit_time_map_filename, conditions_string)), fig)
+    save(joinpath(output_path, make_filename("transmit_time_map.png", conditions_string)), fig)
 
     # Peak-to-peak time-delta map
     peak_to_peak_time_delta_map = peak_to_peak_time_delta_map';
@@ -105,7 +95,7 @@ function saveall(images, windowed_energy_map, integrated_energy_map, peak_to_pea
     hm = heatmap!(ax, centers_x, centers_y, peak_to_peak_time_delta_map .* 1e6, colormap=red_green_red)
     Colorbar(fig[:, end+1], hm)
     resize_to_layout!(fig)
-    save(joinpath(output_path, make_filename(peak_to_peak_time_delta_map_filename, conditions_string)), fig)
+    save(joinpath(output_path, make_filename("peak_to_peak_time_delta_map.png", conditions_string)), fig)
 
     # Line scan at end depth
     line_scan = peak_to_peak_map[end, :]
@@ -114,7 +104,7 @@ function saveall(images, windowed_energy_map, integrated_energy_map, peak_to_pea
     centers_x = range(extent[3], extent[4], length=length(line_scan))
     scatterlines!(ax, centers_x, line_scan)
     resize_to_layout!(fig)
-    save(joinpath(output_path, make_filename(line_scan_filename, conditions_string)), fig)
+    save(joinpath(output_path, make_filename("line_scan.png", conditions_string)), fig)
 
     # Arc scan passing through end depth
     center = (1, size(peak_to_peak_map)[2] / 2)  # (x_center, y_center)
@@ -129,7 +119,7 @@ function saveall(images, windowed_energy_map, integrated_energy_map, peak_to_pea
     ax = Axis(fig[1, 1], xlabel="Angle [degs]", ylabel="Peak-to-peak amplitude [AU]", title="Arc scan - azimuth at $(fov[2]) [m] depth\n$(conditions_string)")
     scatterlines!(ax, angles / π * 180, arc_values)
     resize_to_layout!(fig)
-    save(joinpath(output_path, make_filename(arc_scan_filename, conditions_string)), fig)
+    save(joinpath(output_path, make_filename("arc_scan.png", conditions_string)), fig)
 
     # Peak-to-peak map marked with arc
     fig = Figure()
@@ -143,7 +133,7 @@ function saveall(images, windowed_energy_map, integrated_energy_map, peak_to_pea
     hm = heatmap!(ax, centers_x, centers_y, image)
     Colorbar(fig[:, end+1], hm)
     resize_to_layout!(fig)
-    save(joinpath(output_path, make_filename(peak_to_peak_map_with_arc_filename, conditions_string)), fig)
+    save(joinpath(output_path, make_filename("peak_to_peak_map_with_arc.png", conditions_string)), fig)
 
     # Wave propagation movie
     images = permutedims(images, (2, 1, 3));
@@ -162,7 +152,7 @@ function saveall(images, windowed_energy_map, integrated_energy_map, peak_to_pea
     framerate = 30  # [fps]
     duration = 3  # [s]
     time_indices = round.(Int, range(1, size(wave_field_images)[3], length=framerate*duration))
-    record(fig, joinpath(output_path, make_filename(wave_propagation_filename, conditions_string)), time_indices; framerate=framerate) do time_index
+    record(fig, joinpath(output_path, make_filename("wave_propagation.gif", conditions_string)), time_indices; framerate=framerate) do time_index
         data_obs[] = wave_field_images[:, :, time_index]
         # Skip printing every frame for 1000+ frames to avoid console overhead
         if time_index % 10 == 0 || time_index == time_indices[end]
