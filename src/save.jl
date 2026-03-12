@@ -23,7 +23,7 @@ function make_filename(original_filename, conditions_string)
     end
 end
 
-function saveall(images, integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params, output_path="images", conditions_string="")
+function saveall(images, windowed_energy_map, integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params, output_path="images", conditions_string="")
     println("Saving simulation results to: ", output_path)
     mkpath(output_path)
 
@@ -41,11 +41,23 @@ function saveall(images, integrated_energy_map, peak_to_peak_map, transmit_time_
         xlabel, ylabel = ylabel, xlabel
 
         images = mapslices(rotr90, images; dims=[1, 2])
+        windowed_energy_map = rotr90(windowed_energy_map)
         integrated_energy_map = rotr90(integrated_energy_map)
         peak_to_peak_map = rotr90(peak_to_peak_map)
         transmit_time_map = rotr90(transmit_time_map)
         peak_to_peak_time_delta_map = rotr90(peak_to_peak_time_delta_map)
     end
+
+    # Windowed energy map
+    windowed_energy_map = windowed_energy_map';
+    fig = Figure()
+    ax = Axis(fig[1, 1], width=size(windowed_energy_map)[1], height=size(windowed_energy_map)[2], xlabel=xlabel, ylabel=ylabel, title="Windowed energy map [dB]\n$(conditions_string)")
+    centers_x = range(extent[1], extent[2], length=size(windowed_energy_map)[1])
+    centers_y = range(extent[3], extent[4], length=size(windowed_energy_map)[2])
+    hm = heatmap!(ax, centers_x, centers_y, normlog(windowed_energy_map, dbrange), colormap=:jet1)
+    Colorbar(fig[:, end+1], hm)
+    resize_to_layout!(fig)
+    save(joinpath(output_path, make_filename("windowed_energy_map.png", conditions_string)), fig)
 
     # Integrated energy map
     integrated_energy_map = integrated_energy_map';
@@ -135,13 +147,13 @@ function saveall(images, integrated_energy_map, peak_to_peak_map, transmit_time_
 
     # Wave propagation movie
     images = permutedims(images, (2, 1, 3));
-    wave_field_images = bilog(images, 60)
+    wave_field_images = bilog(images, dbrange/2)
     vmin, vmax = extrema(wave_field_images)
     fig = Figure()
     ax = Axis(fig[1, 1], width=size(wave_field_images)[1], height=size(wave_field_images)[2], xlabel=xlabel, ylabel=ylabel, title="Wave amplitude [dB]\n$(conditions_string)")
     centers_x = range(extent[1], extent[2], length=size(wave_field_images)[1])
     centers_y = range(extent[3], extent[4], length=size(wave_field_images)[2])
-    
+
     # Use an Observable for the data to update the plot efficiently
     data_obs = Observable(wave_field_images[:, :, 1])
     hm = heatmap!(ax, centers_x, centers_y, data_obs; colormap=:RdBu_11, colorrange=(vmin, vmax))

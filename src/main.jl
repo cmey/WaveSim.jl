@@ -23,17 +23,18 @@ function main()
 
   # Run the simulation.
   images = WaveSim.wavesim(trans_delays, sim_params)
-  integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map = WaveSim.beam_energy_map_and_transmit_time_map(images, sim_params)
+  windowed_energy_map, integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map = WaveSim.beam_energy_map_and_transmit_time_map(images, sim_params)
 
-  return integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map, images, sim_params
+  return windowed_energy_map, integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map, images, sim_params
 end
 
-integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map, images, sim_params = main()
+windowed_energy_map, integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map, images, sim_params = main()
 
 # Display results.
 include("view.jl")
-imshowall(images, integrated_energy_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params)
+imshowall(images, windowed_energy_map, integrated_energy_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params)
+
 
 # Save results.
 include("save.jl")
-saveall(images, integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params, "images")
+saveall(images, windowed_energy_map, integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params, "images")

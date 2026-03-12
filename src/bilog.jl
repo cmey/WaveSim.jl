@@ -9,7 +9,7 @@ function bilog(datain, dbrange=40)
     end
 
     norm_mag = (abs.(datain) .+ eps()) / maxabs
-    out = sign.(datain) .* (clamp.(20 * log10.(norm_mag), -dbrange, 0) .+ dbrange)
+    out = sign.(datain) .* (clamp.(10 * log10.(norm_mag), -dbrange, 0) .+ dbrange)
 
     return out
 end
@@ -21,7 +21,7 @@ function normlog(data, dbrange=50)
         return fill(-dbrange, size(data))
     end
     normalized = data ./ max
-    out = clamp.(20 * log10.(normalized), -dbrange, 0)
+    out = clamp.(10 * log10.(normalized), -dbrange, 0)
 
     return out
 end

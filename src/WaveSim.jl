@@ -200,13 +200,14 @@ end
 function beam_energy_map_and_transmit_time_map(images, sim_params)
     @unpack temporal_res = sim_params
 
+    integrated_energy_map = dropdims(sum(images.^2, dims=3), dims=3)  # SOS integration
     # integrated_energy_map = dropdims(sqrt.(mean(images.^2, dims=3)), dims=3)  # RMS
-    integrated_energy_map = dropdims(mean(abs.(images), dims=3), dims=3)  # MeanAbs
+    # integrated_energy_map = dropdims(mean(abs.(images), dims=3), dims=3)  # MeanAbs
 
-    # peak to peak amplitude
+    # peak to peak squared amplitude
     maxval, maxlinindices = findmax(images, dims=3)
     minval, minlinindices = findmin(images, dims=3)
-    peak_to_peak_map = dropdims(maxval .- minval, dims=3)
+    peak_to_peak_map = dropdims(maxval .- minval, dims=3).^2
 
     transmit_time_map = similar(peak_to_peak_map)
     for linind in eachindex(maxlinindices)
@@ -221,7 +222,17 @@ function beam_energy_map_and_transmit_time_map(images, sim_params)
         peak_to_peak_time_delta_map[linind] = (tmax - tmin) * temporal_res
     end
 
-    return integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map
+    # maximum windowed energy map. window is size of pulse length, and we take the maximum over time of the windowed energy.
+    window_size = round(Int, sim_params.pulse_cycles / sim_params.tx_frequency / sim_params.temporal_res)
+    windowed_energy_map = similar(peak_to_peak_map)
+    for linind in eachindex(maxlinindices)
+        x, y, t = Tuple(CartesianIndices(images)[linind])
+        # energy_over_time = [sqrt.(mean(images[x, y, t:t+window_size-1].^2)) for t in 1:(size(images, 3)-window_size+1)]
+        energy_over_time = [sum(images[x, y, t:t+window_size-1].^2) for t in 1:(size(images, 3)-window_size+1)]
+        windowed_energy_map[x, y] = maximum(energy_over_time)
+    end
+
+    return windowed_energy_map, integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map
 end
 
 

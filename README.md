@@ -54,6 +54,10 @@ Visualize the wave propagating through space, over time:
 
 ![wave propagation animation](images/wave_propagation.gif)
 
+Get a spatial heatmap of where the max-SPL-windowed energy went:
+
+![windowed energy map](images/windowed_energy_map.png)
+
 Get a spatial heatmap of where the time-integrated energy went:
 
 ![integrated energy map](images/integrated_energy_map.png)
@@ -62,7 +66,7 @@ Get a spatial heatmap of the peak-to-peak amplitude:
 
 ![peak-to-peak map](images/peak_to_peak_map.png)
 
-Get a spatial heatmap of the transmit time delay to peak amplitude:
+Get a spatial heatmap of the transmit time delay to the peak amplitude:
 
 ![transmit time map](images/transmit_time_map.png)
 
