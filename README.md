@@ -21,33 +21,44 @@ julia --project=.
 
 ## Usage
 
-```
+```julia
 using WaveSim
 
-# Define simulation parameters (use many default values, see the WaveSimParameters struct).
-sim_params = WaveSimParameters(
+# Run the simulator and display results.
+function main()
+  # Define simulation parameters (use many default values, see WaveSimParameters).
+  sim_params = WaveSimParameters(
     focus_depth = 0.03,  # [m]
     steer_angle = 10.0,  # [deg]
+    tx_frequency = 3_000_000.0,  # [Hz]
+    transducer_pitch = 208e-6,  # [m]
     aperture_size = 0.02,  # [m]
-);
+    dbrange = 50,  # [dB]
+  )
 
-# Compute focusing delay for the elements of the phased array.
-trans_delays = WaveSim.delays_from_focus_and_steer(sim_params);
+  # Compute focusing delays for the elements of the phased array.
+  trans_delays = WaveSim.delays_from_focus_and_steer(sim_params)
 
-# (optional) Compute optimized "best" spatial and temporal parameters.
-sim_params = WaveSim.autores(sim_params, trans_delays)
+  # Compute optimized "best" spatial and temporal parameters.
+  sim_params = WaveSim.autores(sim_params, trans_delays, multiplier=0.5)
 
-# Run the simulation.
-images = WaveSim.wavesim(trans_delays, sim_params);
-integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map = WaveSim.beam_energy_map_and_transmit_time_map(images, sim_params);
+  # Run the simulation.
+  images = WaveSim.wavesim(trans_delays, sim_params)
+  windowed_energy_map, integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map = WaveSim.beam_energy_map_and_transmit_time_map(images, sim_params)
+
+  return windowed_energy_map, integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map, images, sim_params
+end
+
+windowed_energy_map, integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map, images, sim_params = main()
 
 # Display results.
-include("src/view.jl")
-imshowall(images, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params);
+include("view.jl")
+imshowall(images, windowed_energy_map, integrated_energy_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params)
 
 # Save results.
-include("src/save.jl")
-saveall(images, integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params, "images")
+include("save.jl")
+saveall(images, windowed_energy_map, integrated_energy_map, peak_to_peak_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params, "images")
+
 ```
 
 Visualize the wave propagating through space, over time:

@@ -6,12 +6,9 @@ function main()
   sim_params = WaveSimParameters(
     focus_depth = 0.03,  # [m]
     steer_angle = 10.0,  # [deg]
+    tx_frequency = 3_000_000.0,  # [Hz]
+    transducer_pitch = 208e-6,  # [m]
     aperture_size = 0.02,  # [m]
-    # tx_frequency = 3_000_000.0,  # [Hz]
-    # focus_depth = Inf,  # [m]
-    # steer_angle = 0.0,  # [deg]
-    # transducer_pitch = 205e-6,  # [m]
-    # aperture_size = 0.01312,  # [m]
     dbrange = 50,  # [dB]
   )
 
@@ -33,7 +30,6 @@ windowed_energy_map, integrated_energy_map, peak_to_peak_map, transmit_time_map,
 # Display results.
 include("view.jl")
 imshowall(images, windowed_energy_map, integrated_energy_map, transmit_time_map, peak_to_peak_time_delta_map, sim_params)
-
 
 # Save results.
 include("save.jl")
