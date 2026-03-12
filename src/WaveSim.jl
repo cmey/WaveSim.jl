@@ -54,7 +54,7 @@ export WaveSimParameters
 end
 
 # Concrete default directivity function with fully-typed signature to help inference
-function default_directivity(sinθ::Float32, tx_frequency::Float32, c::Float32, transducer_pitch::Float32)::Float32
+function default_directivity(θ::Float32, tx_frequency::Float32, c::Float32, transducer_pitch::Float32)::Float32
   # Account for mechanical crosstalk between elements
   crosstalk_factor = 1.2f0  # Assume 20% crosstalk factor
   # From Umchid 2009 Directivity Pattern Measurement of Ultrasound Transducers:
@@ -63,7 +63,7 @@ function default_directivity(sinθ::Float32, tx_frequency::Float32, c::Float32, 
   a = element_surface_diameter / 2.0f0
   λ = c / tx_frequency
   k = 2.0f0 * π / λ
-  ka_sin_θ = k * a * sinθ
+  ka_sin_θ = k * a * sin(θ)
   if abs(ka_sin_θ) < 1f-5
     return 1.0f0
   end
@@ -105,11 +105,14 @@ function init(trans_delays, sim_params)
   x_transducers = [transducer_pitch * itrans for itrans in 1:n_transducers]  # [m]
   x_transducers .+= fov[1] / 2 - mean(extrema(x_transducers))  # center around FOV in x
   y_transducers = zeros(Float32, n_transducers)
+  θ_transducers = zeros(Float32, n_transducers)
   if isfinite(aperture_radius)
     x_transducers_centered = x_transducers .- mean(extrema(x_transducers))
     x_half_width = maximum(abs.(x_transducers_centered))
     @assert aperture_radius >= x_half_width + 0.00001f0 "Aperture radius too small for given aperture size"
-    y_transducers .= sqrt.( aperture_radius.^2 .- x_transducers_centered.^2)
+    # angle θ of element along the curved ultrasound array, relative to the center element, which is at 0 degs.
+    θ_transducers .= asin.(x_transducers_centered ./ aperture_radius)
+    y_transducers .= sqrt.(aperture_radius.^2 .- x_transducers_centered.^2)
     y_transducers .-= minimum(y_transducers)
   end
   transducers = [SVector{2,Float32}(x_transducers[i], y_transducers[i]) for i in 1:length(x_transducers)]
@@ -129,12 +132,12 @@ function init(trans_delays, sim_params)
   # Indices of transducers that will ever fire (non-negative delays)
   transducers_that_are_firing = findall(trans_delays .>= 0)
 
-  return transducers, time_vec, pulse_length, apodization_vec, pix_coord_xs, pix_coord_ys, transducers_that_are_firing
+  return transducers, θ_transducers, time_vec, pulse_length, apodization_vec, pix_coord_xs, pix_coord_ys, transducers_that_are_firing
 end
 
 
 # simulate one time step of wave propagation
-function simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_frequency, c, spatial_res, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch, attenuation_coefficient, pix_coord_xs, pix_coord_ys, transducers, transducers_that_are_firing)
+function simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_frequency, c, spatial_res, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch, attenuation_coefficient, pix_coord_xs, pix_coord_ys, transducers, θ_transducers, transducers_that_are_firing)
   one_over_c = 1.0f0 / c  # For computation speed improvement [s/m]
 
   # Attenuation [dB] = α [dB/cm/MHz] * distance [cm] * frequency [MHz]
@@ -149,6 +152,7 @@ function simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_freque
       amp = 0.0f0
       @simd for i_trans in transducers_that_are_firing
         t_coord = transducers[i_trans]
+        θ_normal = θ_transducers[i_trans]
         trans_delay = trans_delays[i_trans]
         dx = pix_coord_x - t_coord[1]
         dy = pix_coord_y - t_coord[2]
@@ -157,17 +161,14 @@ function simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_freque
         time_to_transducer = dist_to_transducer_not_zero * one_over_c
         time_to_reach = time_to_transducer + trans_delay
         if time_to_reach <= t <= time_to_reach + pulse_length
-          # compute sin(theta) = opposite / hypotenuse where opposite = horizontal difference
-          sinθ = dx / dist_to_transducer_not_zero
-          directivity_factor = directivity_func(sinθ, tx_frequency, c, transducer_pitch)
+          # compute angle relative to element normal
+          # θ_ray is the angle of the path from element to pixel
+          θ_ray = atan(dx, dy)
+          θ = θ_ray - θ_normal
+          directivity_factor = directivity_func(θ, tx_frequency, c, transducer_pitch)
 
-          # Compute attenuation factor if α > 0
-          if attenuation_coefficient > 0.0
-            dist_cm = dist_to_transducer_not_zero * 100.0
-            attenuation_factor = 10.0 ^ (α_factor * dist_cm)
-          else
-            attenuation_factor = 1.0
-          end
+          dist_cm = dist_to_transducer_not_zero * 100.0
+          attenuation_factor = 10.0 ^ (α_factor * dist_cm)
 
           # The phase is in radians (the π factor in the more common notation "2*π*f" is inside pulse_shape_func's cospi)
           amp += apodization_vec[i_trans] * pulse_shape_func((t - time_to_reach) * tx_frequency * 2.0f0) * wave_spreading_factor * directivity_factor * attenuation_factor
@@ -182,13 +183,13 @@ end
 # run the simulation time steps
 function wavesim(trans_delays, sim_params)
   @unpack tx_frequency, pulse_cycles, spatial_res, c, fov, pulse_shape_func, directivity_func, transducer_pitch, attenuation_coefficient = sim_params
-  transducers, tvec, pulse_length, apodization_vec, pix_coord_xs, pix_coord_ys, transducers_that_are_firing = init(trans_delays, sim_params)
+  transducers, θ_transducers, tvec, pulse_length, apodization_vec, pix_coord_xs, pix_coord_ys, transducers_that_are_firing = init(trans_delays, sim_params)
   images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
 
   @showprogress Threads.@threads for i_time in 1:length(tvec)
     t = tvec[i_time]
     image = view(images, :, :, i_time)
-    simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_frequency, c, spatial_res, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch, attenuation_coefficient, pix_coord_xs, pix_coord_ys, transducers, transducers_that_are_firing)
+    simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_frequency, c, spatial_res, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch, attenuation_coefficient, pix_coord_xs, pix_coord_ys, transducers, θ_transducers, transducers_that_are_firing)
   end
 
   return images
