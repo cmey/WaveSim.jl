@@ -1513,7 +1513,7 @@ version = "1.28.0"
 deps = ["BenchmarkTools", "CairoMakie", "ColorSchemes", "FFTW", "ImageView", "Interpolations", "Makie", "Parameters", "ProgressMeter", "SpecialFunctions", "StaticArrays", "Statistics"]
 path = "."
 uuid = "357e0438-a8f0-40ee-b2b7-31745160e092"
-version = "0.1.2"
+version = "0.2.0"
 
 [[deps.Wayland_jll]]
 deps = ["Artifacts", "EpollShim_jll", "Expat_jll", "JLLWrappers", "Libdl", "Libffi_jll"]
