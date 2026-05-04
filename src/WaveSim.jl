@@ -8,7 +8,14 @@ using SpecialFunctions
 using StaticArrays
 using Statistics
 
+include("bilog.jl")
+include("colorize_field.jl")
+include("view.jl")
+include("save.jl")
+
 export WaveSimParameters
+export imshowall
+export saveall
 
 @enum ApodizationShape Rect Hann
 

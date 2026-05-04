@@ -3,7 +3,6 @@ using Interpolations
 # using JLD
 using Makie.Colors
 using Parameters
-include("bilog.jl")
 
 function make_filename(original_filename, conditions_string)
     if isempty(conditions_string)

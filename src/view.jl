@@ -1,5 +1,3 @@
-include("bilog.jl")
-include("colorize_field.jl")
 using ImageView
 using Parameters
 
