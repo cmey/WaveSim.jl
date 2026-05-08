@@ -1,4 +1,5 @@
 using Test
+using InteractiveUtils
 using StaticArrays
 using SpecialFunctions
 using WaveSim
@@ -210,4 +211,48 @@ end
 	trans_delays = WaveSim.delays_from_focus_and_steer(sim_params)
 	images = WaveSim.wavesim(trans_delays, sim_params)
 	@test size(images) == (2, 2, 2)
+end
+
+@testset "warntype" begin
+	sim_params = WaveSimParameters(
+		focus_depth = 0.03,
+		steer_angle = 10.0,
+		aperture_size = 0.01,
+		temporal_res = 0.5e-6,
+		spatial_res = @SVector [64, 128]
+	)
+
+	trans_delays = WaveSim.delays_from_focus_and_steer(sim_params)
+	transducers, tvec, pulse_length, apodization_vec, pix_xs, pix_ys, firing = WaveSim.init(trans_delays, sim_params)
+	image = zeros(Float32, (sim_params.spatial_res[1], sim_params.spatial_res[2]))
+	t = tvec[10]
+
+	warntype_output = sprint() do io
+		InteractiveUtils.code_warntype(io, WaveSim.simulate_one_time_step!, Tuple{typeof(image), typeof(t), typeof(trans_delays), typeof(pulse_length), typeof(sim_params.tx_frequency), typeof(sim_params.c), typeof(sim_params.spatial_res), typeof(sim_params.pulse_shape_func), typeof(apodization_vec), typeof(sim_params.directivity_func), typeof(sim_params.transducer_pitch), typeof(sim_params.attenuation_coefficient), typeof(pix_xs), typeof(pix_ys), typeof(transducers), typeof(sim_params.beamplot_axes), typeof(firing)})
+	end
+
+	@test !occursin("::Any", warntype_output)
+	@test !occursin("Union{", warntype_output)
+
+	elevation_sim_params = WaveSimParameters(
+		focus_depth = 0.03,
+		steer_angle = 10.0,
+		aperture_size = 0.01,
+		aperture_size_elevation = 0.01,
+		beamplot_axes = :elevation_depth,
+		temporal_res = 0.5e-6,
+		spatial_res = @SVector [64, 128]
+	)
+
+	elevation_trans_delays = WaveSim.delays_from_focus_and_steer(elevation_sim_params)
+	elevation_transducers, elevation_tvec, elevation_pulse_length, elevation_apodization_vec, elevation_pix_xs, elevation_pix_ys, elevation_firing = WaveSim.init(elevation_trans_delays, elevation_sim_params)
+	elevation_image = zeros(Float32, (elevation_sim_params.spatial_res[1], elevation_sim_params.spatial_res[2]))
+	elevation_t = elevation_tvec[10]
+
+	elevation_warntype_output = sprint() do io
+		InteractiveUtils.code_warntype(io, WaveSim.simulate_one_time_step!, Tuple{typeof(elevation_image), typeof(elevation_t), typeof(elevation_trans_delays), typeof(elevation_pulse_length), typeof(elevation_sim_params.tx_frequency), typeof(elevation_sim_params.c), typeof(elevation_sim_params.spatial_res), typeof(elevation_sim_params.pulse_shape_func), typeof(elevation_apodization_vec), typeof(elevation_sim_params.directivity_func), typeof(elevation_sim_params.transducer_pitch), typeof(elevation_sim_params.attenuation_coefficient), typeof(elevation_pix_xs), typeof(elevation_pix_ys), typeof(elevation_transducers), typeof(elevation_sim_params.beamplot_axes), typeof(elevation_firing)})
+	end
+
+	@test !occursin("::Any", elevation_warntype_output)
+	@test !occursin("Union{", elevation_warntype_output)
 end
