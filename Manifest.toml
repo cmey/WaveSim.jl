@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "8222328ae26544e9dcab1bb099ca1e04d3c255af"
+project_hash = "f66cd4c67babeb751e55bb501ceec5efdf789244"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1526,10 +1526,10 @@ version = "1.28.0"
     Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
 [[deps.WaveSim]]
-deps = ["BenchmarkTools", "CairoMakie", "ColorSchemes", "FFTW", "ImageView", "Interpolations", "Makie", "Parameters", "ProgressMeter", "SpecialFunctions", "StaticArrays", "Statistics"]
+deps = ["BenchmarkTools", "CairoMakie", "ColorSchemes", "FFTW", "ImageView", "Interpolations", "Makie", "Parameters", "ProgressMeter", "StaticArrays", "Statistics"]
 path = "."
 uuid = "357e0438-a8f0-40ee-b2b7-31745160e092"
-version = "0.2.0"
+version = "0.2.1"
 
 [[deps.Wayland_jll]]
 deps = ["Artifacts", "EpollShim_jll", "Expat_jll", "JLLWrappers", "Libdl", "Libffi_jll"]
