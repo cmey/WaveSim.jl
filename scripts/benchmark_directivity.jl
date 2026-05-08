@@ -76,7 +76,7 @@ println("Geometry: 5.0 MHz, 205 um pitch, crosstalk factor 1.2")
 println("  speedup = ", round(minimum(exact_trial).time / minimum(approx_trial).time, digits = 3), "x")
 println("  speedup = ", round(minimum(exact_bessel_trial).time / minimum(approx_bessel_trial).time, digits = 3), "x")
 
-outdir = joinpath(@__DIR__, "..", "results", "directivity_study")
+outdir = joinpath(@__DIR__, "..", "images", "directivity_study")
 mkpath(outdir)
 
 fig = Figure(size = (1100, 550), fontsize = 20)

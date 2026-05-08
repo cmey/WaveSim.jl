@@ -35,7 +35,7 @@ function summarize_case(label::AbstractString, tx_frequency::Float32, c::Float32
     return angles_deg, exact, approx, abs_err
 end
 
-outdir = joinpath(@__DIR__, "..", "results", "directivity_study")
+outdir = joinpath(@__DIR__, "..", "images", "directivity_study")
 mkpath(outdir)
 
 configs = [
