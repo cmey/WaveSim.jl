@@ -2,6 +2,12 @@ using Test
 using InteractiveUtils
 using StaticArrays
 using SpecialFunctions
+
+try
+	using CUDA
+catch
+end
+
 using WaveSim
 
 @testset "slice helpers" begin
@@ -211,6 +217,32 @@ end
 	trans_delays = WaveSim.delays_from_focus_and_steer(sim_params)
 	images = WaveSim.wavesim(trans_delays, sim_params)
 	@test size(images) == (2, 2, 2)
+end
+
+@testset "cuda backend" begin
+	if !WaveSim.cuda_backend_available()
+		@test_skip false
+	else
+		sim_params = WaveSimParameters(
+			focus_depth = 0.03,
+			steer_angle = 10.0,
+			aperture_size = 0.01,
+			temporal_res = 0.5e-6,
+			spatial_res = @SVector [32, 48]
+		)
+
+		trans_delays = WaveSim.delays_from_focus_and_steer(sim_params)
+		cpu_images = WaveSim.wavesim(trans_delays, sim_params; backend = :cpu)
+		gpu_images = WaveSim.wavesim(trans_delays, sim_params; backend = :cuda)
+
+		@test size(cpu_images) == size(gpu_images)
+		@test isapprox(cpu_images, gpu_images; atol = 5f-4, rtol = 5f-3)
+
+		cpu_elapsed = @elapsed WaveSim.wavesim(trans_delays, sim_params; backend = :cpu)
+		gpu_elapsed = @elapsed WaveSim.wavesim(trans_delays, sim_params; backend = :cuda)
+		@test cpu_elapsed > 0.0
+		@test gpu_elapsed > 0.0
+	end
 end
 
 @testset "warntype" begin

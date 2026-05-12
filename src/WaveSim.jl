@@ -302,6 +302,19 @@ end
   return beamplot_axes == :elevation_depth ? transducer_pitch_elevation : transducer_pitch
 end
 
+function cuda_backend_available()
+  ext = Base.get_extension(@__MODULE__, :WaveSimCUDAExt)
+  return ext !== nothing && ext.cuda_backend_available_impl()
+end
+
+function wavesim_cuda(trans_delays, sim_params)
+  ext = Base.get_extension(@__MODULE__, :WaveSimCUDAExt)
+  if ext === nothing
+    error("CUDA backend is unavailable. Install CUDA.jl, import CUDA, and load WaveSim in an environment with a functional NVIDIA GPU.")
+  end
+  return ext.wavesim_cuda_impl(trans_delays, sim_params)
+end
+
 # simulate one time step of wave propagation
 function simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_frequency, c, spatial_res, pulse_shape_func, apodization_vec, directivity_func, transducer_pitch, attenuation_coefficient, pix_coord_xs, pix_coord_ys, transducers, transducer_normals, beamplot_axes, transducers_that_are_firing)
   one_over_c = 1.0f0 / c  # For computation speed improvement [s/m]
@@ -350,7 +363,7 @@ function simulate_one_time_step!(image, t, trans_delays, pulse_length, tx_freque
 end
 
 # run the simulation time steps
-function wavesim(trans_delays, sim_params)
+function _wavesim_cpu(trans_delays, sim_params)
   @unpack tx_frequency, pulse_cycles, spatial_res, c, fov, pulse_shape_func, directivity_func, transducer_pitch, transducer_pitch_elevation, attenuation_coefficient, beamplot_axes = sim_params
   transducers, transducer_normals, tvec, pulse_length, apodization_vec, pix_coord_xs, pix_coord_ys, transducers_that_are_firing = init(trans_delays, sim_params)
   images = zeros(Float32, (spatial_res[1], spatial_res[2], length(tvec)))
@@ -363,6 +376,16 @@ function wavesim(trans_delays, sim_params)
   end
 
   return images
+end
+
+function wavesim(trans_delays, sim_params; backend::Symbol = :cpu)
+  if backend === :cpu
+    return _wavesim_cpu(trans_delays, sim_params)
+  elseif backend === :cuda
+    return wavesim_cuda(trans_delays, sim_params)
+  else
+    error("Unknown backend: $backend. Expected :cpu or :cuda.")
+  end
 end
 
 # Get the beam profile spatial map and transmit time of beam energy, where each pixel indicates the maximum energy that was seen at that place, and at what time.
