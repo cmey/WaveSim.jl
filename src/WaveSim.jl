@@ -64,6 +64,8 @@ export saveall
   attenuation_coefficient::Float32 = 0.0  # [dB/cm/MHz]
   # Directivity function of angle and frequency.
   directivity_func::directivity_func_T = default_directivity
+  # Optional per-element sensitivity multiplier. Can be a Matrix{Float32} (az, el) or Vector{Float32}.
+  element_sensitivities::Any = nothing
 end
 
 @inline function besselj1_approx(x::Float32)::Float32
@@ -188,7 +190,7 @@ end
 
 # compute dependent parameters given global configuration
 function init(trans_delays, sim_params)
-  @unpack tx_frequency, transducer_pitch, transducer_pitch_elevation, aperture_size, aperture_size_elevation, aperture_radius, aperture_radius_elevation, spatial_res, temporal_res, end_simulation_time, fov, pulse_cycles, apodization_shape, beamplot_axes, focus_depth, focus_depth_elevation, steer_angle, steer_angle_elevation = sim_params
+  @unpack tx_frequency, transducer_pitch, transducer_pitch_elevation, aperture_size, aperture_size_elevation, aperture_radius, aperture_radius_elevation, spatial_res, temporal_res, end_simulation_time, fov, pulse_cycles, apodization_shape, beamplot_axes, focus_depth, focus_depth_elevation, steer_angle, steer_angle_elevation, element_sensitivities = sim_params
 
   n_transducers_azimuth = max(1, round(Int, aperture_size / transducer_pitch))
   n_transducers_elevation = max(1, round(Int, aperture_size_elevation / transducer_pitch_elevation))
@@ -196,13 +198,39 @@ function init(trans_delays, sim_params)
   transducers, transducer_normals = transducer_geometry(sim_params)
   time_vec = collect(0.0f0:temporal_res:end_simulation_time)
   pulse_length = pulse_cycles / tx_frequency
+
   if apodization_shape == Rect
-      apodization_matrix = ones(Float32, n_transducers_azimuth, n_transducers_elevation)
+      # (el, az) ordering to match transducers and trans_delays
+      apodization_matrix = ones(Float32, n_transducers_elevation, n_transducers_azimuth)
   else
       apodization_azimuth = n_transducers_azimuth == 1 ? ones(Float32, 1) : Float32[(sin((i - 1) * pi / (n_transducers_azimuth - 1)))^2 for i in 1:n_transducers_azimuth]
       apodization_elevation = n_transducers_elevation == 1 ? ones(Float32, 1) : Float32[(sin((i - 1) * pi / (n_transducers_elevation - 1)))^2 for i in 1:n_transducers_elevation]
-      apodization_matrix = apodization_azimuth .* reshape(apodization_elevation, 1, :)
+      # (el, az) ordering to match transducers and trans_delays
+      apodization_matrix = apodization_elevation .* reshape(apodization_azimuth, 1, :)
   end
+
+  # Apply per-element sensitivity if provided
+  if element_sensitivities !== nothing
+    if element_sensitivities isa AbstractMatrix
+      if size(element_sensitivities) == (n_transducers_azimuth, n_transducers_elevation)
+        apodization_matrix .*= transpose(element_sensitivities)
+      elseif size(element_sensitivities) == (n_transducers_elevation, n_transducers_azimuth)
+        apodization_matrix .*= element_sensitivities
+      else
+        error("element_sensitivities matrix size $(size(element_sensitivities)) does not match aperture size $((n_transducers_azimuth, n_transducers_elevation))")
+      end
+    elseif element_sensitivities isa AbstractVector
+      if length(element_sensitivities) == length(apodization_matrix)
+        # We'll apply the vector to the flattened matrix
+        apodization_matrix = reshape(vec(apodization_matrix) .* element_sensitivities, n_transducers_elevation, n_transducers_azimuth)
+      else
+        error("element_sensitivities vector length $(length(element_sensitivities)) does not match total number of elements $(length(apodization_matrix))")
+      end
+    else
+      error("element_sensitivities must be an AbstractVector, AbstractMatrix, or nothing")
+    end
+  end
+
   apodization_vec = vec(apodization_matrix)
   # Precompute pixel coordinates for the image grid to avoid recomputing every time step
   dx = Float32(fov[1]) / Float32(spatial_res[1])
