@@ -210,8 +210,8 @@ function init(trans_delays, sim_params)
   pix_coord_xs = Float32[((i - (spatial_res[1] + 1) / 2) * dx) for i in 1:spatial_res[1]]
   pix_coord_ys = Float32[j * dz for j in 1:spatial_res[2]]
 
-  # Indices of transducers that will ever fire (non-negative delays)
-  transducers_that_are_firing = findall(trans_delays .>= 0)
+  # Indices of all transducers to allow negative delays (early firing)
+  transducers_that_are_firing = eachindex(trans_delays)
 
   return transducers, transducer_normals, time_vec, pulse_length, apodization_vec, pix_coord_xs, pix_coord_ys, transducers_that_are_firing
 end
@@ -285,7 +285,17 @@ function autores(sim_params, trans_delays; multiplier=1.0f0, min_spatial_res=(25
   # since setup is symmetric, computing one side is enough.
   max_aperture_size = max(aperture_size, aperture_size_elevation)
   time_top_trans_to_bot_corner = sqrt((fov[1]/2 + max_aperture_size/2)^2 + fov[2]^2) / c
-  end_simulation_time = time_top_trans_to_bot_corner + maximum(trans_delays) + pulse_cycles * 1/tx_frequency
+
+  # Use only non-negative delays for end_simulation_time calculation.
+  non_neg_delays = filter(>=(0.0f0), trans_delays)
+  max_delay = if isempty(non_neg_delays)
+      @warn "No non-negative transducer delays found in autores. Using 0 for max_delay."
+      0.0f0
+  else
+      maximum(non_neg_delays)
+  end
+
+  end_simulation_time = max(temporal_res, time_top_trans_to_bot_corner + max_delay + pulse_cycles * 1/tx_frequency)
   WaveSimParameters(sim_params; temporal_res=temporal_res, spatial_res=spatial_res, end_simulation_time=end_simulation_time)
 end
 
@@ -404,7 +414,7 @@ function beam_energy_map_and_transmit_time_map(images, sim_params)
     transmit_time_map = similar(peak_to_peak_map)
     for linind in eachindex(maxlinindices)
         x, y, t = Tuple(CartesianIndices(images)[maxlinindices[linind]])
-        transmit_time_map[linind] = t * temporal_res
+        transmit_time_map[linind] = (t - 1) * temporal_res
     end
 
     peak_to_peak_time_delta_map = similar(peak_to_peak_map)
