@@ -200,29 +200,28 @@ function init(trans_delays, sim_params)
   pulse_length = pulse_cycles / tx_frequency
 
   if apodization_shape == Rect
-      # (el, az) ordering to match transducers and trans_delays
-      apodization_matrix = ones(Float32, n_transducers_elevation, n_transducers_azimuth)
+      # (az, el) ordering to match transducer_geometry results
+      apodization_matrix = ones(Float32, n_transducers_azimuth, n_transducers_elevation)
   else
       apodization_azimuth = n_transducers_azimuth == 1 ? ones(Float32, 1) : Float32[(sin((i - 1) * pi / (n_transducers_azimuth - 1)))^2 for i in 1:n_transducers_azimuth]
       apodization_elevation = n_transducers_elevation == 1 ? ones(Float32, 1) : Float32[(sin((i - 1) * pi / (n_transducers_elevation - 1)))^2 for i in 1:n_transducers_elevation]
-      # (el, az) ordering to match transducers and trans_delays
-      apodization_matrix = apodization_elevation .* reshape(apodization_azimuth, 1, :)
+      # (az, el) ordering to match transducer_geometry results
+      apodization_matrix = apodization_azimuth .* reshape(apodization_elevation, 1, :)
   end
 
-  # Apply per-element sensitivity if provided
   if element_sensitivities !== nothing
     if element_sensitivities isa AbstractMatrix
       if size(element_sensitivities) == (n_transducers_azimuth, n_transducers_elevation)
-        apodization_matrix .*= transpose(element_sensitivities)
-      elseif size(element_sensitivities) == (n_transducers_elevation, n_transducers_azimuth)
         apodization_matrix .*= element_sensitivities
+      elseif size(element_sensitivities) == (n_transducers_elevation, n_transducers_azimuth)
+        apodization_matrix .*= transpose(element_sensitivities)
       else
         error("element_sensitivities matrix size $(size(element_sensitivities)) does not match aperture size $((n_transducers_azimuth, n_transducers_elevation))")
       end
     elseif element_sensitivities isa AbstractVector
       if length(element_sensitivities) == length(apodization_matrix)
-        # We'll apply the vector to the flattened matrix
-        apodization_matrix = reshape(vec(apodization_matrix) .* element_sensitivities, n_transducers_elevation, n_transducers_azimuth)
+        # Vector input is applied to the flattened (az, el) ordering
+        apodization_matrix = reshape(vec(apodization_matrix) .* element_sensitivities, n_transducers_azimuth, n_transducers_elevation)
       else
         error("element_sensitivities vector length $(length(element_sensitivities)) does not match total number of elements $(length(apodization_matrix))")
       end
@@ -231,7 +230,14 @@ function init(trans_delays, sim_params)
     end
   end
 
-  apodization_vec = vec(apodization_matrix)
+  # IMPORTANT: transducers and trans_delays are built as [j, i] (elevation, azimuth)
+  # So we must transpose or reshape carefully to match that.
+  # apodization_matrix is [i, j] (azimuth, elevation). 
+  # Its vec() is az1-el1, az2-el1, ... (column-major)
+  # trans_delays is [j, i] (elevation, azimuth).
+  # Its vec() is el1-az1, el2-az1, ...
+  # To match el1-az1, el2-az1, we need to flatten the (el, az) version of the matrix.
+  apodization_vec = vec(transpose(apodization_matrix))
   # Precompute pixel coordinates for the image grid to avoid recomputing every time step
   dx = Float32(fov[1]) / Float32(spatial_res[1])
   dz = Float32(fov[2]) / Float32(spatial_res[2])

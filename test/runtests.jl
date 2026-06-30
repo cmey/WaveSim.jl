@@ -192,6 +192,58 @@ end
 	@test issorted(plane_delays)
 end
 
+@testset "element sensitivities" begin
+	# 1D array - Vector input
+	# 2 elements in azimuth, 1 in elevation
+	params_1d = WaveSimParameters(
+		aperture_size = 0.01f0,
+		transducer_pitch = 0.005f0,
+		aperture_size_elevation = 0.0f0,
+		element_sensitivities = Float32[0.5, 2.0]
+	)
+	delays_1d = WaveSim.delays_from_focus_and_steer(params_1d)
+	_, _, _, _, apodization_vec, _, _, _ = WaveSim.init(delays_1d, params_1d)
+	@test length(apodization_vec) == 2
+	@test apodization_vec == Float32[0.5, 2.0]
+
+	# 2D array - Matrix input
+	# 2x2 elements
+	params_2d = WaveSimParameters(
+		aperture_size = 0.01f0,
+		aperture_size_elevation = 0.01f0,
+		transducer_pitch = 0.005f0,
+		transducer_pitch_elevation = 0.005f0,
+		element_sensitivities = Float32[1.0 2.0; 3.0 4.0] # (az=2, el=2)
+	)
+	delays_2d = WaveSim.delays_from_focus_and_steer(params_2d)
+	_, _, _, _, apodization_vec_2d, _, _, _ = WaveSim.init(delays_2d, params_2d)
+	@test length(apodization_vec_2d) == 4
+	# Internal layout is (el, az), flattened as el1-az1, el2-az1, el1-az2, el2-az2
+	# For input [1.0 2.0; 3.0 4.0] (az1=[1.0, 3.0], az2=[2.0, 4.0]):
+	# el1-az1 = 1.0, el2-az1 = 3.0? No, az1=[1,3], el1 is first row.
+	# Input matrix is M[az, el]. az1 = [1, 2], az2 = [3, 4] (if 2 columns)
+	# Wait, [1.0 2.0; 3.0 4.0] in Julia:
+	# Row 1: 1.0, 2.0
+	# Row 2: 3.0, 4.0
+	# Columns: col1=[1.0, 3.0], col2=[2.0, 4.0]
+	# If az=cols, el=rows: az1 row is [1,2], az2 row is [3,4]? No.
+	# Size is (2,2). M[1,1]=1, M[2,1]=3, M[1,2]=2, M[2,2]=4.
+	# Az=dim1: az1=[1,2], az2=[3,4]? No, az1 is index 1 of dim 1.
+	# M[1,1] is az1, el1. M[2,1] is az2, el1. M[1,2] is az1, el2. M[2,2] is az2, el2.
+	# Output vec in (el, az) order: (el1, az1), (el2, az1), (el1, az2), (el2, az2)
+	# (1,1), (2,1), (1,2), (2,2) -> 1.0, 2.0, 3.0, 4.0
+	@test apodization_vec_2d == Float32[1.0, 2.0, 3.0, 4.0]
+
+	# error case: wrong dimensions
+	params_err = WaveSimParameters(
+		aperture_size = 0.01f0,
+		transducer_pitch = 0.005f0,
+		element_sensitivities = Float32[1.0, 2.0, 3.0]
+	)
+	delays_err = WaveSim.delays_from_focus_and_steer(params_err)
+	@test_throws ErrorException WaveSim.init(delays_err, params_err)
+end
+
 @testset "small simulation" begin
 	sim_params = WaveSimParameters(
 		tx_frequency = 1.0f6,
