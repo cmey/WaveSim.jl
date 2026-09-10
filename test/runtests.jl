@@ -269,6 +269,9 @@ end
 	trans_delays = WaveSim.delays_from_focus_and_steer(sim_params)
 	images = WaveSim.wavesim(trans_delays, sim_params)
 	@test size(images) == (2, 2, 2)
+	selected_backend = WaveSim.cuda_backend_available() ? :cuda : :cpu
+	expected_images = WaveSim.wavesim(trans_delays, sim_params; backend = selected_backend)
+	@test isapprox(images, expected_images; atol = 5f-4, rtol = 5f-3)
 end
 
 @testset "cuda backend" begin

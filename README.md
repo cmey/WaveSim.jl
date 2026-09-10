@@ -92,7 +92,8 @@ The code supports multi-threading, make use of it by starting Julia with multipl
 
 ### CUDA backend
 
-If `CUDA.jl` is available in the active environment (`import CUDA`) and a functional
-NVIDIA GPU is present, the simulation can be run on the GPU with:
-`WaveSim.wavesim(trans_delays, sim_params; backend = :cuda)`.
+To enable the optional CUDA backend, load `CUDA.jl` before `WaveSim`:
+`import CUDA; using WaveSim`. If a functional NVIDIA GPU is present,
+`WaveSim.wavesim` then automatically uses the GPU. Without `CUDA.jl`, it uses the
+CPU. Pass `backend = :cpu` or `backend = :cuda` to override the automatic selection.
 A comparison script is available at `scripts/benchmark_cuda.jl`.

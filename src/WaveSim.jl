@@ -422,7 +422,7 @@ function _wavesim_cpu(trans_delays, sim_params)
   return images
 end
 
-function wavesim(trans_delays, sim_params; backend::Symbol = :cpu)
+function wavesim(trans_delays, sim_params; backend::Symbol = cuda_backend_available() ? :cuda : :cpu)
   if backend === :cpu
     return _wavesim_cpu(trans_delays, sim_params)
   elseif backend === :cuda
